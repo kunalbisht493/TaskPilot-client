@@ -8,15 +8,15 @@ export default {
     extend: {
       colors: {
         canvas: {
-          DEFAULT: '#111215',
-          subtle: '#16181c',
-          muted: '#1c1f24',
-          border: '#262a30',
-          borderSubtle: '#1e2126',
+          DEFAULT: '#ffffff',
+          subtle: '#f9fafb',
+          muted: '#f3f4f6',
+          border: '#e5e7eb',
+          borderSubtle: '#f3f4f6',
         },
-        action: {
-          DEFAULT: '#2563eb',
-          hover: '#1d4ed8',
+        brand: {
+          primary: '#0f172a', // Solid crisp charcoal for the single primary action
+          primaryHover: '#1e293b',
         }
       },
       fontFamily: {

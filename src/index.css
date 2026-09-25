@@ -4,14 +4,14 @@
 
 @layer base {
   body {
-    background-color: #111215;
-    color: #e4e4e7;
+    background-color: #ffffff;
+    color: #0f172a;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 focus-visible:ring-offset-1 focus-visible:ring-offset-[#111215];
+  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 focus-visible:ring-offset-white;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -30,8 +30,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2b3038;
+  background: #d1d5db;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b424d;
+  background: #9ca3af;
 }

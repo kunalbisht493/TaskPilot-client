@@ -37,18 +37,18 @@ export function GoalInput({ onSubmit, isExecuting, disabled }) {
             rows={2}
             disabled={isExecuting || disabled}
             aria-label="Agent goal input"
-            className="w-full bg-canvas text-zinc-100 placeholder-zinc-500 rounded p-2.5 pr-24 border border-canvas-border focus-ring text-xs resize-none disabled:opacity-50"
+            className="w-full bg-white text-zinc-900 placeholder-zinc-400 rounded p-2.5 pr-24 border border-canvas-border focus-ring text-xs resize-none disabled:opacity-50"
           />
 
           <div className="absolute right-2.5 bottom-3 flex items-center gap-2">
-            <span className="text-[10px] text-zinc-500 font-mono">
+            <span className="text-[10px] text-zinc-400 font-mono">
               {goal.length}/{MAX_LENGTH}
             </span>
-            {/* The single primary accent color on the entire screen */}
+            {/* The single primary accent action: solid crisp dark charcoal button */}
             <button
               type="submit"
               disabled={!goal.trim() || isExecuting || disabled}
-              className="px-3 py-1 rounded bg-action hover:bg-action-hover text-white text-xs font-medium flex items-center gap-1.5 focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium flex items-center gap-1.5 focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isExecuting ? (
                 <>
@@ -65,7 +65,7 @@ export function GoalInput({ onSubmit, isExecuting, disabled }) {
           </div>
         </div>
 
-        {/* Suggestion prompt chips - neutral styling */}
+        {/* Suggestion prompt chips */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="text-zinc-500 text-[11px] mr-1">Suggestions:</span>
           {SUGGESTIONS.map((item, idx) => (
@@ -74,7 +74,7 @@ export function GoalInput({ onSubmit, isExecuting, disabled }) {
               type="button"
               onClick={() => setGoal(item.prompt)}
               disabled={isExecuting || disabled}
-              className="px-2 py-0.5 rounded bg-canvas hover:bg-canvas-muted text-zinc-400 hover:text-zinc-200 border border-canvas-borderSubtle text-[11px] focus-ring disabled:opacity-50"
+              className="px-2 py-0.5 rounded bg-white hover:bg-canvas-muted text-zinc-600 hover:text-zinc-900 border border-canvas-border text-[11px] focus-ring disabled:opacity-50 transition-colors"
             >
               {item.label}
             </button>

@@ -53,16 +53,16 @@ export function AuditLogPanel() {
   return (
     <div className="flex flex-col h-full bg-canvas-subtle">
       {/* Sub-bar metrics */}
-      <div className="p-2 border-b border-canvas-borderSubtle flex items-center justify-between text-xs text-zinc-400">
+      <div className="p-2 border-b border-canvas-border flex items-center justify-between text-xs text-zinc-500 bg-white">
         <div className="flex items-center gap-3 font-mono text-[11px]">
-          <span>Total: <strong className="text-zinc-200">{stats?.totalActions ?? logs.length}</strong></span>
-          <span>Confirmed: <strong className="text-zinc-200">{stats?.confirmedByUser || 0}</strong></span>
-          <span>Success: <strong className="text-zinc-200">{stats?.totalActions > 0 ? Math.round(((stats.successCount || 0) / stats.totalActions) * 100) + '%' : '100%'}</strong></span>
+          <span>Total: <strong className="text-zinc-800">{stats?.totalActions ?? logs.length}</strong></span>
+          <span>Confirmed: <strong className="text-zinc-800">{stats?.confirmedByUser || 0}</strong></span>
+          <span>Success: <strong className="text-zinc-800">{stats?.totalActions > 0 ? Math.round(((stats.successCount || 0) / stats.totalActions) * 100) + '%' : '100%'}</strong></span>
         </div>
         <button
           onClick={fetchLogsAndStats}
           disabled={loading}
-          className="text-zinc-500 hover:text-zinc-300 p-1 rounded focus-ring"
+          className="text-zinc-400 hover:text-zinc-700 p-1 rounded focus-ring"
           title="Refresh audit trail"
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
@@ -70,15 +70,15 @@ export function AuditLogPanel() {
       </div>
 
       {/* Semantic Table of Logs */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-white">
         {logs.length === 0 ? (
-          <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-500 text-xs">
+          <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-400 text-xs">
             <p>0 actions logged</p>
-            <p className="text-[10px] text-zinc-600 mt-0.5">Every tool invocation and confirmation is committed to MongoDB.</p>
+            <p className="text-[10px] text-zinc-400 mt-0.5">Every tool invocation and confirmation is committed to MongoDB.</p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-canvas text-zinc-500 border-b border-canvas-borderSubtle sticky top-0 font-mono text-[10px]">
+          <table className="w-full text-left text-xs text-zinc-700">
+            <thead className="bg-canvas-subtle text-zinc-500 border-b border-canvas-border sticky top-0 font-mono text-[10px]">
               <tr>
                 <th className="py-1.5 px-3">TOOL</th>
                 <th className="py-1.5 px-3">STATE</th>
@@ -86,7 +86,7 @@ export function AuditLogPanel() {
                 <th className="py-1.5 px-2 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-canvas-borderSubtle font-mono text-[11px]">
+            <tbody className="divide-y divide-canvas-border font-mono text-[11px]">
               {logs.map((log) => {
                 const isExpanded = expandedId === log._id;
                 const isSuccess = log.status === 'success';
@@ -95,21 +95,21 @@ export function AuditLogPanel() {
                   <React.Fragment key={log._id || Math.random()}>
                     <tr 
                       onClick={() => setExpandedId(prev => prev === log._id ? null : log._id)}
-                      className="hover:bg-canvas-muted/40 cursor-pointer"
+                      className="hover:bg-canvas-subtle cursor-pointer"
                     >
-                      <td className="py-1.5 px-3 text-zinc-200 font-medium">
+                      <td className="py-1.5 px-3 text-zinc-900 font-medium">
                         {log.tool}
                       </td>
                       <td className="py-1.5 px-3 text-[10px]">
-                        <span className={`inline-flex items-center gap-1 ${isSuccess ? 'text-zinc-400' : 'text-rose-400'}`}>
-                          {isSuccess ? <CheckCircle className="w-3 h-3 text-zinc-500" /> : <XCircle className="w-3 h-3" />}
+                        <span className={`inline-flex items-center gap-1 ${isSuccess ? 'text-zinc-600' : 'text-rose-600'}`}>
+                          {isSuccess ? <CheckCircle className="w-3 h-3 text-emerald-600" /> : <XCircle className="w-3 h-3" />}
                           {log.confirmedByUser ? 'Confirmed' : 'Read'}
                         </span>
                       </td>
-                      <td className="py-1.5 px-3 text-zinc-500 text-[10px]">
+                      <td className="py-1.5 px-3 text-zinc-400 text-[10px]">
                         {log.createdAt ? new Date(log.createdAt).toLocaleTimeString() : ''}
                       </td>
-                      <td className="py-1.5 px-2 text-right text-zinc-500">
+                      <td className="py-1.5 px-2 text-right text-zinc-400">
                         {isExpanded ? (
                           <ChevronUp className="w-3 h-3 inline" />
                         ) : (
@@ -118,20 +118,20 @@ export function AuditLogPanel() {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr className="bg-canvas">
-                        <td colSpan={4} className="p-2.5 border-t border-canvas-borderSubtle space-y-1.5 font-mono text-[10px]">
+                      <tr className="bg-canvas-subtle">
+                        <td colSpan={4} className="p-2.5 border-t border-canvas-border space-y-1.5 font-mono text-[10px]">
                           {log.inputArgs && (
                             <div>
-                              <span className="text-zinc-500 block mb-0.5">Input:</span>
-                              <pre className="p-1.5 rounded bg-canvas-subtle text-zinc-400 overflow-x-auto border border-canvas-borderSubtle">
+                              <span className="text-zinc-500 block mb-0.5 font-sans">Input arguments:</span>
+                              <pre className="p-1.5 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border">
                                 {JSON.stringify(log.inputArgs, null, 2)}
                               </pre>
                             </div>
                           )}
                           {log.outputResult && (
                             <div>
-                              <span className="text-zinc-500 block mb-0.5">Output:</span>
-                              <pre className="p-1.5 rounded bg-canvas-subtle text-zinc-300 overflow-x-auto border border-canvas-borderSubtle">
+                              <span className="text-zinc-500 block mb-0.5 font-sans">Output result:</span>
+                              <pre className="p-1.5 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border">
                                 {JSON.stringify(log.outputResult, null, 2)}
                               </pre>
                             </div>
