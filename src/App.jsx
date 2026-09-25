@@ -30,53 +30,49 @@ export default function App() {
   } = useAgentSession();
 
   return (
-    <div className="min-h-screen bg-surface-950 flex flex-col text-slate-100">
-      {/* Header */}
+    <div className="min-h-screen bg-canvas flex flex-col text-zinc-100 antialiased">
+      {/* Flush top navigation */}
       <Header onOpenInfo={() => setInfoModalOpen(true)} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5">
-        {/* Unauthenticated Quick Banner */}
+      {/* Main container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto flex flex-col">
+        {/* Unauthenticated notice */}
         {!isAuthenticated && (
-          <div className="p-3.5 rounded-lg bg-surface-900 border border-surface-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <p className="text-slate-300">
-              Not currently logged in. Run Dev Quick Login to test tool execution and confirmations.
-            </p>
+          <div className="p-3 bg-canvas-subtle border-b border-canvas-border flex items-center justify-between text-xs text-zinc-300">
+            <span>Development session inactive. Authenticate via Dev Quick Login to enable tool execution and confirmations.</span>
             <button
               onClick={() => devLogin()}
-              className="px-3 py-1.5 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-medium focus-ring whitespace-nowrap"
+              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 focus-ring font-medium"
             >
               Dev Quick Login
             </button>
           </div>
         )}
 
-        {/* Goal Input Section */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span>Session: <span className="font-mono">{conversationId.substring(0, 16)}</span></span>
-            {steps.length > 0 && (
-              <button
-                onClick={resetSession}
-                className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition-colors focus-ring rounded"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset conversation</span>
-              </button>
-            )}
-          </div>
+        {/* Goal input header */}
+        <GoalInput
+          onSubmit={submitGoal}
+          isExecuting={isExecuting}
+          disabled={!isAuthenticated}
+        />
 
-          <GoalInput
-            onSubmit={submitGoal}
-            isExecuting={isExecuting}
-            disabled={!isAuthenticated}
-          />
-        </div>
+        {/* Two-Pane Workspace Layout (Divided by single vertical border, NOT floating cards) */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-[580px] border-b border-canvas-border">
+          {/* Left Pane: Execution Trace Timeline (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col border-b lg:border-b-0 lg:border-r border-canvas-border">
+            <div className="px-4 py-1.5 border-b border-canvas-borderSubtle bg-canvas flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+              <span>SESSION: {conversationId.substring(0, 16)}</span>
+              {steps.length > 0 && (
+                <button
+                  onClick={resetSession}
+                  className="flex items-center gap-1 text-zinc-500 hover:text-zinc-300 font-sans focus-ring rounded"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
 
-        {/* Main 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left Column: Live Reasoning Feed (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col">
             <ReasoningFeed
               steps={steps}
               isExecuting={isExecuting}
@@ -87,36 +83,40 @@ export default function App() {
             />
           </div>
 
-          {/* Right Column: Tabbed Task and Audit Workspace (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col space-y-3">
-            <div className="flex border-b border-surface-800 gap-4 text-xs font-medium">
+          {/* Right Pane: Operations & Ledger Workspace (5 cols, subtle background tonal contrast) */}
+          <div className="lg:col-span-5 flex flex-col bg-canvas-subtle">
+            {/* Tab selector */}
+            <div className="flex border-b border-canvas-border bg-canvas text-xs font-medium">
               <button
                 onClick={() => setActiveTab('tasks')}
-                className={`pb-2.5 transition-colors border-b-2 ${
+                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${
                   activeTab === 'tasks'
-                    ? 'border-primary-600 text-slate-100'
-                    : 'border-transparent text-slate-400 hover:text-slate-300'
+                    ? 'border-zinc-200 text-zinc-100 font-semibold'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                Database tasks
+                Database Tasks
               </button>
               <button
                 onClick={() => setActiveTab('audit')}
-                className={`pb-2.5 transition-colors border-b-2 ${
+                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${
                   activeTab === 'audit'
-                    ? 'border-primary-600 text-slate-100'
-                    : 'border-transparent text-slate-400 hover:text-slate-300'
+                    ? 'border-zinc-200 text-zinc-100 font-semibold'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                Action audit trail
+                Action Audit Log
               </button>
             </div>
 
-            {activeTab === 'tasks' ? (
-              <TaskPanel />
-            ) : (
-              <AuditLogPanel />
-            )}
+            {/* Selected panel view */}
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'tasks' ? (
+                <TaskPanel />
+              ) : (
+                <AuditLogPanel />
+              )}
+            </div>
           </div>
         </div>
       </main>
@@ -130,14 +130,14 @@ export default function App() {
         />
       )}
 
-      {/* Architecture Modal */}
+      {/* Architecture Specs Modal */}
       <SystemInfoModal
         isOpen={infoModalOpen}
         onClose={() => setInfoModalOpen(false)}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-surface-900 py-4 px-6 text-center text-xs text-slate-500">
+      {/* Minimal Footer */}
+      <footer className="py-3 px-6 text-center text-[11px] text-zinc-600 bg-canvas">
         TaskPilot • Autonomous MERN AI Agent with Hand-Built ReAct Loop and Human-in-the-Loop Confirmation
       </footer>
     </div>

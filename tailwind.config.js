@@ -7,26 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          700: '#334155',
-          800: '#1e293b',
-          850: '#161f30',
-          900: '#0f172a',
-          950: '#0a0f1d',
+        canvas: {
+          DEFAULT: '#111215',
+          subtle: '#16181c',
+          muted: '#1c1f24',
+          border: '#262a30',
+          borderSubtle: '#1e2126',
         },
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-        },
-        status: {
-          success: '#15803d',
-          warning: '#b45309',
-          danger: '#b91c1c',
+        action: {
+          DEFAULT: '#2563eb',
+          hover: '#1d4ed8',
         }
       },
       fontFamily: {
@@ -34,11 +24,11 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       animation: {
-        'step-in': 'stepIn 0.18s ease-out',
+        'step-arrival': 'stepArrival 0.15s ease-out',
       },
       keyframes: {
-        stepIn: {
-          '0%': { opacity: '0', transform: 'translateY(3px)' },
+        stepArrival: {
+          '0%': { opacity: '0', transform: 'translateY(2px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         }
       }

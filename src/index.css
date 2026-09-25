@@ -4,18 +4,16 @@
 
 @layer base {
   body {
-    background-color: #0a0f1d;
-    color: #e2e8f0;
+    background-color: #111215;
+    color: #e4e4e7;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
-/* Accessible focus ring utility */
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-950;
+  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 focus-visible:ring-offset-1 focus-visible:ring-offset-[#111215];
 }
 
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -24,18 +22,16 @@
   }
 }
 
-/* Minimal functional scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 2px;
+  background: #2b3038;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #3b424d;
 }

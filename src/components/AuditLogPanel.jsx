@@ -17,7 +17,7 @@ export function AuditLogPanel() {
     try {
       setLoading(true);
       const [logsRes, statsRes] = await Promise.all([
-        auditApi.getLogs({ limit: 20 }),
+        auditApi.getLogs({ limit: 25 }),
         auditApi.getStats()
       ]);
       if (logsRes?.logs) setLogs(logsRes.logs);
@@ -36,7 +36,7 @@ export function AuditLogPanel() {
   useEffect(() => {
     if (!socket) return;
     const handleNewLog = (newLog) => {
-      setLogs((prev) => [newLog, ...prev.slice(0, 24)]);
+      setLogs((prev) => [newLog, ...prev.slice(0, 29)]);
       setStats((prev) => prev ? {
         ...prev,
         totalActions: (prev.totalActions || 0) + 1,
@@ -51,64 +51,42 @@ export function AuditLogPanel() {
   }, [socket]);
 
   return (
-    <div className="bg-surface-900 border border-surface-800 rounded-lg flex flex-col h-[480px] overflow-hidden">
-      {/* Header */}
-      <div className="p-3.5 border-b border-surface-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xs font-semibold text-slate-200">Action Audit Trail</h2>
-          <span className="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-400">
-            {stats?.totalActions ?? logs.length} logged
-          </span>
+    <div className="flex flex-col h-full bg-canvas-subtle">
+      {/* Sub-bar metrics */}
+      <div className="p-2 border-b border-canvas-borderSubtle flex items-center justify-between text-xs text-zinc-400">
+        <div className="flex items-center gap-3 font-mono text-[11px]">
+          <span>Total: <strong className="text-zinc-200">{stats?.totalActions ?? logs.length}</strong></span>
+          <span>Confirmed: <strong className="text-zinc-200">{stats?.confirmedByUser || 0}</strong></span>
+          <span>Success: <strong className="text-zinc-200">{stats?.totalActions > 0 ? Math.round(((stats.successCount || 0) / stats.totalActions) * 100) + '%' : '100%'}</strong></span>
         </div>
         <button
           onClick={fetchLogsAndStats}
           disabled={loading}
-          className="text-slate-400 hover:text-white p-1 rounded focus-ring transition-colors"
+          className="text-zinc-500 hover:text-zinc-300 p-1 rounded focus-ring"
           title="Refresh audit trail"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
-
-      {/* Summary stats row */}
-      {stats && (
-        <div className="grid grid-cols-3 divide-x divide-surface-800 border-b border-surface-800 bg-surface-950 text-xs">
-          <div className="p-2 text-center">
-            <span className="text-[11px] text-slate-400 block">Total actions</span>
-            <span className="font-semibold text-slate-200">{stats.totalActions || 0}</span>
-          </div>
-          <div className="p-2 text-center">
-            <span className="text-[11px] text-slate-400 block">Confirmed</span>
-            <span className="font-semibold text-slate-200">{stats.confirmedByUser || 0}</span>
-          </div>
-          <div className="p-2 text-center">
-            <span className="text-[11px] text-slate-400 block">Success rate</span>
-            <span className="font-semibold text-slate-200">
-              {stats.totalActions > 0 
-                ? Math.round(((stats.successCount || 0) / stats.totalActions) * 100) + '%' 
-                : '100%'}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Semantic Table of Logs */}
       <div className="flex-1 overflow-y-auto">
         {logs.length === 0 ? (
-          <div className="h-full flex items-center justify-center p-4 text-xs text-slate-500">
-            No audit records found
+          <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-500 text-xs">
+            <p>0 actions logged</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">Every tool invocation and confirmation is committed to MongoDB.</p>
           </div>
         ) : (
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-surface-950 text-slate-400 border-b border-surface-800 sticky top-0">
+          <table className="w-full text-left text-xs text-zinc-300">
+            <thead className="bg-canvas text-zinc-500 border-b border-canvas-borderSubtle sticky top-0 font-mono text-[10px]">
               <tr>
-                <th className="py-2 px-3 font-medium">Tool</th>
-                <th className="py-2 px-3 font-medium">State</th>
-                <th className="py-2 px-3 font-medium">Time</th>
-                <th className="py-2 px-3 font-medium text-right">Details</th>
+                <th className="py-1.5 px-3">TOOL</th>
+                <th className="py-1.5 px-3">STATE</th>
+                <th className="py-1.5 px-3">TIME</th>
+                <th className="py-1.5 px-2 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-850">
+            <tbody className="divide-y divide-canvas-borderSubtle font-mono text-[11px]">
               {logs.map((log) => {
                 const isExpanded = expandedId === log._id;
                 const isSuccess = log.status === 'success';
@@ -117,43 +95,43 @@ export function AuditLogPanel() {
                   <React.Fragment key={log._id || Math.random()}>
                     <tr 
                       onClick={() => setExpandedId(prev => prev === log._id ? null : log._id)}
-                      className="hover:bg-surface-850 cursor-pointer transition-colors"
+                      className="hover:bg-canvas-muted/40 cursor-pointer"
                     >
-                      <td className="py-2 px-3 font-mono text-[11px] text-slate-200">
+                      <td className="py-1.5 px-3 text-zinc-200 font-medium">
                         {log.tool}
                       </td>
-                      <td className="py-2 px-3">
-                        <span className={`inline-flex items-center gap-1 text-[11px] ${isSuccess ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {isSuccess ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                      <td className="py-1.5 px-3 text-[10px]">
+                        <span className={`inline-flex items-center gap-1 ${isSuccess ? 'text-zinc-400' : 'text-rose-400'}`}>
+                          {isSuccess ? <CheckCircle className="w-3 h-3 text-zinc-500" /> : <XCircle className="w-3 h-3" />}
                           {log.confirmedByUser ? 'Confirmed' : 'Read'}
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-slate-400 text-[11px]">
+                      <td className="py-1.5 px-3 text-zinc-500 text-[10px]">
                         {log.createdAt ? new Date(log.createdAt).toLocaleTimeString() : ''}
                       </td>
-                      <td className="py-2 px-3 text-right">
+                      <td className="py-1.5 px-2 text-right text-zinc-500">
                         {isExpanded ? (
-                          <ChevronUp className="w-3.5 h-3.5 inline text-slate-400" />
+                          <ChevronUp className="w-3 h-3 inline" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5 inline text-slate-400" />
+                          <ChevronDown className="w-3 h-3 inline" />
                         )}
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr className="bg-surface-950">
-                        <td colSpan={4} className="p-3 border-t border-surface-850 space-y-2">
+                      <tr className="bg-canvas">
+                        <td colSpan={4} className="p-2.5 border-t border-canvas-borderSubtle space-y-1.5 font-mono text-[10px]">
                           {log.inputArgs && (
                             <div>
-                              <span className="text-[10px] text-slate-500 font-medium block mb-1">Input arguments:</span>
-                              <pre className="p-2 rounded bg-surface-900 text-slate-300 font-mono text-[11px] overflow-x-auto border border-surface-800">
+                              <span className="text-zinc-500 block mb-0.5">Input:</span>
+                              <pre className="p-1.5 rounded bg-canvas-subtle text-zinc-400 overflow-x-auto border border-canvas-borderSubtle">
                                 {JSON.stringify(log.inputArgs, null, 2)}
                               </pre>
                             </div>
                           )}
                           {log.outputResult && (
                             <div>
-                              <span className="text-[10px] text-slate-500 font-medium block mb-1">Output result:</span>
-                              <pre className="p-2 rounded bg-surface-900 text-slate-300 font-mono text-[11px] overflow-x-auto border border-surface-800">
+                              <span className="text-zinc-500 block mb-0.5">Output:</span>
+                              <pre className="p-1.5 rounded bg-canvas-subtle text-zinc-300 overflow-x-auto border border-canvas-borderSubtle">
                                 {JSON.stringify(log.outputResult, null, 2)}
                               </pre>
                             </div>
