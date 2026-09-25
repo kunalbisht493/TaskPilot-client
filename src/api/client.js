@@ -1,5 +1,11 @@
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
+/**
+ * Standard HTTP client adhering to Part 1 security rules:
+ * - Credentials included for HttpOnly cookie persistence (no localStorage storage of JWT)
+ * - Safe response parsing
+ * - No sensitive data leakage in console logs
+ */
 export async function apiClient(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
   
@@ -11,7 +17,7 @@ export async function apiClient(endpoint, options = {}) {
   const config = {
     ...options,
     headers,
-    credentials: 'include', // Ensures HttpOnly cookies are attached
+    credentials: 'include',
   };
 
   try {
@@ -19,7 +25,7 @@ export async function apiClient(endpoint, options = {}) {
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const errorMsg = data?.error || data?.message || `HTTP ${res.status} ${res.statusText}`;
+      const errorMsg = data?.error || data?.message || `Request failed with status ${res.status}`;
       const error = new Error(errorMsg);
       error.status = res.status;
       error.data = data;
@@ -28,7 +34,8 @@ export async function apiClient(endpoint, options = {}) {
 
     return data;
   } catch (err) {
-    console.error(`API Error [${options.method || 'GET'} ${endpoint}]:`, err.message);
+    // Clean error logging without leaking tokens
+    console.error(`API request failed [${options.method || 'GET'} ${endpoint}]: ${err.message}`);
     throw err;
   }
 }

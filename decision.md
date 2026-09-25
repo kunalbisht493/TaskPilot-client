@@ -185,3 +185,22 @@ This document records all significant technical and design decisions made for th
 - **Why Taken:**
   1. **Separation of Concerns:** Client and Server can scale, deploy, and redeploy independently.
   2. **Zero Configuration for Vercel:** Vite's standard output is automatically recognized by Vercel.
+
+---
+
+## ADR-C011: Design System Refactoring, Client Security Hardening & Port 5174 Migration
+
+- **Status:** Accepted
+- **Date:** 2026-09-25
+- **Context:**
+  To ensure visual credibility and eliminate generic AI demo aesthetics, the client required a design overhaul removing decorative gradients, neon glows, and scattered animations. Concurrently, client-side security needed hardening (enforcing input length boundaries, strict JSX escaping, zero token exposure, and cross-origin synchronization with port 5174).
+
+- **Decision:**
+  1. **Color & Surface System:** Replaced high-saturation neon accents and gradient washes with a calm, high-contrast dark slate palette (#0a0f1d, #0f172a, #161f30) and a singular slate-blue accent (#2563eb), reserving subtle amber (#b45309) strictly for pending human confirmation.
+  2. **Structural UI Differentiation:** Replaced generic rounded cards with distinct, functional surfaces: a semantic <table> for the audit trail, an activity timeline for the reasoning feed, and a flat modal dialog for write-action confirmation.
+  3. **Motion Restraint:** Eliminated ambient card hover-lifts and section fade-ins. Retained motion in exactly one deliberate place: the arrival of new reasoning steps (stepIn: 0.18s ease-out), fully supporting prefers-reduced-motion.
+  4. **Input Defense & Rate Guard:** Enforced a client-side boundary (maxLength=500) with live character counting and submission disabling on the prompt input.
+  5. **Port & CORS Alignment:** Reconfigured Vite to serve on port 5174, updating Express and Socket.io CORS origin whitelists to permit seamless cross-origin cookie and WebSocket communication.
+
+- **Why Taken:**
+  Delivers a calm, professional product appearance suitable for technical evaluation while enforcing defense-in-depth security principles.

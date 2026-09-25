@@ -4,14 +4,10 @@ import { useSocket } from '../context/SocketContext';
 import { 
   Bot, 
   Calendar, 
-  CheckCircle2, 
-  AlertCircle, 
+  Check, 
   LogOut, 
-  User, 
-  Zap, 
-  Info, 
+  HelpCircle, 
   ExternalLink,
-  ShieldAlert,
   Cpu
 } from 'lucide-react';
 import { authApi } from '../api/authApi';
@@ -26,7 +22,7 @@ export function Header({ onOpenInfo }) {
       setLoggingIn(true);
       await devLogin();
     } catch (err) {
-      alert('Dev login failed: ' + err.message);
+      alert('Login failed: ' + err.message);
     } finally {
       setLoggingIn(false);
     }
@@ -37,120 +33,93 @@ export function Header({ onOpenInfo }) {
   };
 
   return (
-    <header className="border-b border-slate-800 bg-dark-900/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+    <header className="border-b border-surface-800 bg-surface-900 sticky top-0 z-40 px-4 sm:px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Brand / Logo */}
+        {/* Brand identity */}
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-accent-500/30 border border-brand-500/40 shadow-lg shadow-brand-500/10">
-            <Bot className="w-5 h-5 text-brand-500" />
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${socketConnected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${socketConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-            </span>
+          <div className="w-8 h-8 rounded-lg bg-surface-800 border border-surface-700 flex items-center justify-center text-slate-200">
+            <Bot className="w-4 h-4 text-primary-500" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                TaskPilot
-              </h1>
-              <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                Autonomous Agent
-              </span>
+              <span className="font-semibold text-sm text-slate-100 tracking-tight">TaskPilot</span>
+              <span className="text-xs text-slate-400 font-normal">Personal AI Assistant</span>
             </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Hand-built ReAct Loop • Human-in-the-Loop Guardrails
-            </p>
           </div>
         </div>
 
-        {/* Center: System Status Indicator */}
-        <div className="hidden md:flex items-center gap-3 text-xs bg-slate-800/50 border border-slate-700/60 rounded-full px-3 py-1.5">
+        {/* Center status indicators */}
+        <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 border-l border-r border-surface-800 px-4">
           <div className="flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-accent-500" />
-            <span className="text-slate-300 font-medium">LLM:</span>
-            <span className="text-emerald-400 font-mono">
-              {health?.activeLlmProvider ? health.activeLlmProvider.toUpperCase() : 'GROQ'}
+            <Cpu className="w-3.5 h-3.5 text-slate-400" />
+            <span>Model:</span>
+            <span className="font-medium text-slate-200">
+              {health?.activeLLMProvider ? health.activeLLMProvider.toUpperCase() : 'GROQ'}
             </span>
           </div>
-          <span className="text-slate-600">|</span>
+
           <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-            <span className="text-slate-300">{socketConnected ? 'Real-Time Stream' : 'Connecting...'}</span>
+            <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+            <span>{socketConnected ? 'Real-time feed connected' : 'Connecting to feed...'}</span>
           </div>
         </div>
 
-        {/* Right: Actions & User Info */}
-        <div className="flex items-center gap-3">
-          {/* Architecture Info Button */}
+        {/* Right actions */}
+        <div className="flex items-center gap-2.5">
           <button
             onClick={onOpenInfo}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition"
-            title="View Architecture Details"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-surface-850 hover:bg-surface-800 border border-surface-700 focus-ring transition-colors"
+            title="System architecture specifications"
           >
-            <Info className="w-3.5 h-3.5 text-accent-400" />
-            <span className="hidden sm:inline">Architecture</span>
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">System details</span>
           </button>
 
-          {/* Calendar Status */}
-          {isAuthenticated && (
-            <div className="hidden lg:flex items-center">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2 pl-2">
               {isConnectedToCalendar ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Calendar Linked</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400 ml-0.5" />
-                </div>
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-emerald-950/60 text-emerald-300 border border-emerald-800">
+                  <Check className="w-3 h-3 text-emerald-400" />
+                  Calendar linked
+                </span>
               ) : (
                 <button
                   onClick={handleGoogleConnect}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-slate-200 bg-surface-800 hover:bg-surface-700 border border-surface-700 focus-ring"
                 >
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Connect Calendar</span>
-                  <ExternalLink className="w-3 h-3 text-amber-400" />
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                  Connect Google Calendar
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
                 </button>
               )}
-            </div>
-          )}
 
-          {/* Auth State */}
-          {isAuthenticated ? (
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl p-1 pr-3">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-accent-600 to-brand-500 flex items-center justify-center text-white font-bold text-xs">
-                {user?.name ? user.name[0].toUpperCase() : 'U'}
+              <div className="flex items-center gap-2 bg-surface-850 border border-surface-700 rounded-md py-1 px-2.5 text-xs text-slate-300">
+                <span className="font-medium max-w-[120px] truncate">
+                  {user?.name || user?.email || 'Logged in'}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-slate-400 hover:text-rose-400 p-0.5 ml-1 focus-ring"
+                  title="Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-semibold text-slate-200 leading-tight truncate max-w-[120px]">
-                  {user?.name || user?.email || 'Authenticated'}
-                </p>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  {isConnectedToCalendar ? 'Calendar active' : 'Dev session'}
-                </p>
-              </div>
-              <button
-                onClick={logout}
-                className="ml-1 text-slate-400 hover:text-rose-400 p-1 rounded-md transition"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <button
                 onClick={handleDevLogin}
                 disabled={loggingIn}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white shadow-sm shadow-brand-500/20 transition disabled:opacity-50"
+                className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary-600 hover:bg-primary-700 text-white focus-ring transition-colors disabled:opacity-50"
               >
-                <Zap className="w-3.5 h-3.5" />
-                <span>{loggingIn ? 'Connecting...' : 'Dev Quick Login'}</span>
+                {loggingIn ? 'Authenticating...' : 'Dev Quick Login'}
               </button>
               <button
                 onClick={handleGoogleConnect}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                className="hidden sm:inline-flex px-3 py-1.5 rounded-md text-xs font-medium text-slate-300 bg-surface-800 hover:bg-surface-700 border border-surface-700 focus-ring transition-colors"
               >
-                <User className="w-3.5 h-3.5 text-slate-400" />
-                <span>Google OAuth</span>
+                Google Login
               </button>
             </div>
           )}
