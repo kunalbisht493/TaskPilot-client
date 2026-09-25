@@ -1,13 +1,9 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+export const API_BASE = import.meta.env.VITE_API_URL || '';
 
-/**
- * Standard HTTP client adhering to Part 1 security rules:
- * - Credentials included for HttpOnly cookie persistence (no localStorage storage of JWT)
- * - Safe response parsing
- * - No sensitive data leakage in console logs
- */
 export async function apiClient(endpoint, options = {}) {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const url = endpoint.startsWith('http') 
+    ? endpoint 
+    : (API_BASE ? `${API_BASE}${endpoint}` : endpoint);
   
   const headers = {
     'Content-Type': 'application/json',
@@ -34,7 +30,6 @@ export async function apiClient(endpoint, options = {}) {
 
     return data;
   } catch (err) {
-    // Clean error logging without leaking tokens
     console.error(`API request failed [${options.method || 'GET'} ${endpoint}]: ${err.message}`);
     throw err;
   }

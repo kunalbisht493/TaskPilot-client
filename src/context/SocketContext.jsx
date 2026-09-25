@@ -9,7 +9,10 @@ export function SocketProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const s = io(API_BASE, {
+    // In dev, connect to window.location.origin (proxied through Vite) or direct API_BASE
+    const socketUrl = API_BASE || window.location.origin;
+
+    const s = io(socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
@@ -17,17 +20,14 @@ export function SocketProvider({ children }) {
     });
 
     s.on('connect', () => {
-      console.log('⚡ Socket.io connected:', s.id);
       setIsConnected(true);
     });
 
-    s.on('disconnect', (reason) => {
-      console.log('🔌 Socket.io disconnected:', reason);
+    s.on('disconnect', () => {
       setIsConnected(false);
     });
 
-    s.on('connect_error', (err) => {
-      console.warn('Socket connect error:', err.message);
+    s.on('connect_error', () => {
       setIsConnected(false);
     });
 

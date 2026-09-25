@@ -23,14 +23,16 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       const data = await authApi.getMe();
-      if (data?.success && data?.user) {
-        setUser(data.user);
+      if ((data?.authenticated || data?.success) && data?.user) {
+        setUser({
+          ...data.user,
+          isConnectedToCalendar: Boolean(data.user.hasGoogleCalendar || data.user.isConnectedToCalendar),
+        });
       } else {
         setUser(null);
       }
       setError(null);
     } catch {
-      // User is not logged in or cookie expired
       setUser(null);
     } finally {
       setLoading(false);
@@ -42,12 +44,18 @@ export function AuthProvider({ children }) {
     refreshUser();
   }, [fetchHealth, refreshUser]);
 
-  const devLogin = async (customUser) => {
+  const devLogin = async (customUser = {}) => {
     setLoading(true);
     try {
       const data = await authApi.devLogin(customUser);
       if (data?.user) {
-        setUser(data.user);
+        const normalized = {
+          ...data.user,
+          isConnectedToCalendar: Boolean(data.user.hasGoogleCalendar || data.user.isConnectedToCalendar),
+        };
+        setUser(normalized);
+        setError(null);
+        return { ...data, user: normalized };
       }
       return data;
     } catch (err) {
@@ -78,7 +86,7 @@ export function AuthProvider({ children }) {
         devLogin,
         logout,
         isAuthenticated: !!user,
-        isConnectedToCalendar: !!user?.isConnectedToCalendar,
+        isConnectedToCalendar: Boolean(user?.isConnectedToCalendar),
       }}
     >
       {children}
