@@ -1,18 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { API_BASE } from '../api/client';
 
 const SocketContext = createContext(null);
+
+const SOCKET_SERVER_URL = import.meta.env.VITE_WS_URL || 'http://localhost:5001';
 
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // In dev, connect to window.location.origin (proxied through Vite) or direct API_BASE
-    const socketUrl = API_BASE || window.location.origin;
-
-    const s = io(socketUrl, {
+    const s = io(SOCKET_SERVER_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,

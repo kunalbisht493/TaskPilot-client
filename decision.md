@@ -258,3 +258,19 @@ This document records all significant technical and design decisions made for th
 
 - **Why Taken:**
   Resolves dev-login failures deterministically across all browser security configurations and host addresses.
+
+---
+
+## ADR-C015: Direct WebSocket Transport Architecture & Elimination of Vite WS Proxy Choke
+
+- **Status:** Accepted
+- **Date:** 2026-09-26
+- **Context:**
+  Proxying WebSockets through Vite's development server (ws: true on /socket.io) caused "Error: write ECONNABORTED" socket exceptions whenever browser tabs reloaded, HMR triggered, or engine.io ping-pong intervals closed abruptly.
+
+- **Decision:**
+  1. **Direct Socket.io Connection:** Configured SocketContext.jsx to connect directly to the backend server (http://localhost:5001) using native cross-origin credentials, eliminating Vite's intermediate WebSocket proxy.
+  2. **Dedicated HTTP REST Proxying:** Retained the Vite proxy exclusively for /api REST endpoints to maintain same-origin first-party cookie benefits while decoupling real-time transport from Vite's internal HMR server.
+
+- **Why Taken:**
+  Completely resolves write ECONNABORTED proxy crashes and guarantees resilient real-time streaming during page reloads and HMR updates.
