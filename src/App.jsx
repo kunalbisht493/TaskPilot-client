@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { GoalInput } from './components/GoalInput';
 import { ReasoningFeed } from './components/ReasoningFeed';
@@ -8,12 +8,36 @@ import { AuditLogPanel } from './components/AuditLogPanel';
 import { SystemInfoModal } from './components/SystemInfoModal';
 import { useAgentSession } from './hooks/useAgentSession';
 import { useAuth } from './context/AuthContext';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
-  const { isAuthenticated, devLogin } = useAuth();
+  const { isAuthenticated, devLogin, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [authBanner, setAuthBanner] = useState(null);
+
+  // Sync OAuth redirect query parameters (?auth=success or ?auth_error=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth') === 'success') {
+      refreshUser();
+      setAuthBanner({
+        type: 'success',
+        message: 'Google account connected successfully. Calendar and session are active.',
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+      const timer = setTimeout(() => setAuthBanner(null), 6000);
+      return () => clearTimeout(timer);
+    } else if (params.get('auth_error')) {
+      const errorMsg = params.get('auth_error');
+      setAuthBanner({
+        type: 'error',
+        message: `Google authentication failed: ${decodeURIComponent(errorMsg)}`,
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [refreshUser]);
 
   const {
     conversationId,
@@ -36,10 +60,36 @@ export default function App() {
 
       {/* Main container */}
       <main className="flex-1 max-w-7xl w-full mx-auto flex flex-col">
+        {/* Auth notification banner */}
+        {authBanner && (
+          <div
+            className={`px-4 py-2 text-xs flex items-center justify-between border-b ${
+              authBanner.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-800 border-rose-200'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {authBanner.type === 'success' ? (
+                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              )}
+              <span>{authBanner.message}</span>
+            </div>
+            <button
+              onClick={() => setAuthBanner(null)}
+              className="text-zinc-500 hover:text-zinc-800 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Unauthenticated notice */}
         {!isAuthenticated && (
           <div className="p-3 bg-canvas-subtle border-b border-canvas-border flex items-center justify-between text-xs text-zinc-700">
-            <span>Development session inactive. Authenticate via Dev Quick Login to enable tool execution and confirmations.</span>
+            <span>Development session inactive. Authenticate via Google OAuth or Dev Quick Login to enable tool execution and confirmations.</span>
             <button
               onClick={() => devLogin()}
               className="px-2.5 py-1 rounded bg-white hover:bg-zinc-50 text-zinc-900 border border-canvas-border focus-ring font-medium"
@@ -138,7 +188,7 @@ export default function App() {
 
       {/* Minimal Footer */}
       <footer className="py-3 px-6 text-center text-[11px] text-zinc-400 bg-white">
-        TaskPilot • Autonomous MERN AI Agent with Hand-Built ReAct Loop and Human-in-the-Loop Confirmation
+        TaskPilot - Autonomous MERN AI Agent with Hand-Built ReAct Loop and Human-in-the-Loop Confirmation
       </footer>
     </div>
   );

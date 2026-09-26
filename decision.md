@@ -274,3 +274,21 @@ This document records all significant technical and design decisions made for th
 
 - **Why Taken:**
   Completely resolves write ECONNABORTED proxy crashes and guarantees resilient real-time streaming during page reloads and HMR updates.
+
+---
+
+## ADR-C016: Dynamic OAuth ReturnTo Origin Synchronization & Client URL Sanitization
+
+- **Status:** Accepted
+- **Date:** 2026-09-26
+- **Context:**
+  When authenticating through Google OAuth 2.0 while running on Port 5174, the backend redirected the browser back to a hardcoded Port 5173 destination. The frontend required passing its dynamic origin (`window.location.origin`) during OAuth initiation, receiving the redirect at Port 5174, immediately syncing the authenticated user session, and sanitizing the URL query string (`?auth=success`).
+
+- **Decision:**
+  1. **Dynamic Origin Parameterization:** Updated `authApi.getGoogleConnectUrl()` to append `?returnTo=${encodeURIComponent(window.location.origin)}`, ensuring the server preserves the active client origin across the OAuth flow.
+  2. **Automated Session Hydration on OAuth Return:** Implemented an effect in `App.jsx` monitoring `window.location.search` for `?auth=success`, immediately triggering `refreshUser()` to populate the user profile and calendar link status.
+  3. **Address Bar Sanitization:** Used `window.history.replaceState` to strip `?auth=success` and `?auth_error=...` from the browser address bar without forcing a page reload.
+  4. **Dismissible Status Feedback:** Rendered non-intrusive notification banners for Google authentication events (success and error states) adhering to the clean white/light design system.
+
+- **Why Taken:**
+  Guarantees that Google OAuth redirects the user back to the exact port in use, auto-authenticates without requiring manual page refresh, and keeps the browser address bar clean.
