@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { CheckSquare, Square, Trash2, RefreshCw } from 'lucide-react';
 import { taskApi } from '../api/taskApi';
 import { useAuth } from '../context/AuthContext';
@@ -43,30 +43,42 @@ export function TaskPanel() {
         setNewTitle('');
       }
     } catch (err) {
-      alert('Error creating task: ' + err.message);
+      const msg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Error creating task: ' + msg);
     } finally {
       setIsAdding(false);
     }
   };
 
   const handleToggleComplete = async (taskId, currentStatus) => {
-    if (currentStatus === 'completed') return;
+    if (currentStatus === 'completed' || !taskId) return;
     try {
       const res = await taskApi.completeTask(taskId);
-      if (res?.task) {
-        setTasks(prev => prev.map(t => t._id === taskId ? res.task : t));
+      if (res?.task || res?.success) {
+        setTasks(prev =>
+          prev.map(t => {
+            const currentId = t.id || t._id;
+            if (currentId === taskId) {
+              return { ...t, status: 'completed' };
+            }
+            return t;
+          })
+        );
       }
     } catch (err) {
-      alert('Error completing task: ' + err.message);
+      const msg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Error completing task: ' + msg);
     }
   };
 
   const handleDeleteTask = async (taskId) => {
+    if (!taskId) return;
     try {
       await taskApi.deleteTask(taskId);
-      setTasks(prev => prev.filter(t => t._id !== taskId));
+      setTasks(prev => prev.filter(t => (t.id || t._id) !== taskId));
     } catch (err) {
-      alert('Error deleting task: ' + err.message);
+      const msg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Error deleting task: ' + msg);
     }
   };
 
@@ -114,20 +126,21 @@ export function TaskPanel() {
           </div>
         ) : (
           filteredTasks.map((task) => {
+            const taskId = task.id || task._id;
             const isCompleted = task.status === 'completed';
             return (
               <div
-                key={task._id}
+                key={taskId || Math.random()}
                 className="flex items-center justify-between py-2 px-3 hover:bg-canvas-subtle transition-colors"
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                   <button
-                    onClick={() => handleToggleComplete(task._id, task.status)}
-                    className="text-zinc-400 hover:text-zinc-700 flex-shrink-0 focus-ring rounded"
+                    onClick={() => handleToggleComplete(taskId, task.status)}
+                    className="text-zinc-400 hover:text-zinc-700 flex-shrink-0 focus-ring rounded p-0.5"
                     title={isCompleted ? 'Completed' : 'Mark complete'}
                   >
                     {isCompleted ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-zinc-600" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <Square className="w-3.5 h-3.5" />
                     )}
@@ -146,7 +159,7 @@ export function TaskPanel() {
                 </div>
 
                 <button
-                  onClick={() => handleDeleteTask(task._id)}
+                  onClick={() => handleDeleteTask(taskId)}
                   className="text-zinc-400 hover:text-rose-600 p-1 focus-ring"
                   title="Delete task"
                 >
