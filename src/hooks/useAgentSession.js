@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { agentApi } from '../api/agentApi';
 
@@ -60,6 +60,9 @@ export function useAgentSession() {
             curr.result = data.result || (data.error ? { error: data.error } : null);
             curr.success = data.success !== false;
             curr.status = 'observed';
+            if (curr.isWriteAction) {
+              curr.confirmedStatus = 'approved';
+            }
           } else if (data.type === 'final_answer') {
             curr.finalAnswer = data.content;
             curr.status = 'completed';
@@ -179,6 +182,21 @@ export function useAgentSession() {
 
       console.log('Confirmation REST response:', res);
       setPendingConfirmation(null);
+
+      // Transition the write tool step to approved / rejected
+      setSteps((prevSteps) =>
+        prevSteps.map((s) => {
+          if (s.isWriteAction || s.status === 'awaiting_confirmation') {
+            return {
+              ...s,
+              status: approved ? 'approved' : 'rejected',
+              confirmedStatus: approved ? 'approved' : 'rejected',
+              result: res.toolResult || (approved ? { status: 'executed', details: 'Action approved and executed successfully.' } : { status: 'cancelled', details: 'Action rejected by user.' }),
+            };
+          }
+          return s;
+        })
+      );
 
       if (res?.status === 'completed' || res?.result?.status === 'completed') {
         const answer = res.result?.finalAnswer || res.finalAnswer;
