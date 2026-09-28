@@ -23,7 +23,7 @@ export function ReasoningFeed({
           <span className="text-xs font-semibold text-zinc-800">Live Execution Trace</span>
           {steps.length > 0 && (
             <span className="text-[10px] text-zinc-500 font-mono">
-              ({steps.length} {steps.length === 1 ? 'step' : 'steps'})
+              ({steps.length} {steps.length === 1 ? 'cycle' : 'cycles'})
             </span>
           )}
         </div>
@@ -65,7 +65,7 @@ export function ReasoningFeed({
               >
                 {/* Node marker on vertical spine */}
                 <span className="absolute -left-[31px] top-0 flex items-center justify-center w-5 h-5 rounded-full bg-white border border-zinc-300 text-[10px] font-mono text-zinc-600 font-medium">
-                  {idx + 1}
+                  {step.step || idx + 1}
                 </span>
 
                 {/* Step header */}
@@ -92,7 +92,7 @@ export function ReasoningFeed({
                       </div>
                       {step.isWriteAction && (
                         <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                          Requires confirmation
+                          Awaiting user confirmation
                         </span>
                       )}
                     </div>
@@ -111,6 +111,14 @@ export function ReasoningFeed({
                     <div className="p-2 rounded bg-white text-zinc-800 font-mono text-[10px] overflow-x-auto border border-canvas-border max-h-36">
                       <pre>{typeof step.result === 'object' ? JSON.stringify(step.result, null, 2) : String(step.result)}</pre>
                     </div>
+                  </div>
+                )}
+
+                {/* 4. Active reasoning placeholder if waiting for tool */}
+                {!step.thought && !step.tool && !step.result && (
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 italic py-1">
+                    <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
+                    <span>Evaluating next action in cycle...</span>
                   </div>
                 )}
               </div>

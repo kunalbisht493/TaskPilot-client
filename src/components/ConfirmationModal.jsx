@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AlertCircle, Check, X, Calendar, CheckSquare } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { AlertCircle, Check, X, Calendar, CheckSquare, Clock } from 'lucide-react';
 
 export function ConfirmationModal({ 
   confirmation, 
@@ -10,7 +10,8 @@ export function ConfirmationModal({
 
   if (!confirmation) return null;
 
-  const { confirmationId, tool, args, description } = confirmation;
+  const { tool, args = {}, description } = confirmation;
+  const confirmationId = confirmation.confirmationId || confirmation._id || confirmation.id;
 
   const handleAction = async (approved) => {
     setSubmitting(true);
@@ -27,6 +28,23 @@ export function ConfirmationModal({
 
   const isCalendar = tool === 'create_calendar_event';
   const isTask = tool === 'create_task' || tool === 'complete_task';
+
+  const formatDateTime = (val) => {
+    if (!val) return 'Not specified';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+    } catch (_) {
+      return String(val);
+    }
+  };
+
+  const startTimeStr = formatDateTime(args?.startTime || args?.startDateTime || args?.start);
+  const endTimeStr = formatDateTime(args?.endTime || args?.endDateTime || args?.end);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
@@ -61,28 +79,38 @@ export function ConfirmationModal({
           </div>
 
           {isCalendar && args && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-zinc-800 font-medium">
-                <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                <span>{args.summary || 'Calendar event'}</span>
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-1.5 text-zinc-900 font-semibold text-xs">
+                <Calendar className="w-3.5 h-3.5 text-zinc-600" />
+                <span>{args.summary || args.title || 'Calendar Event'}</span>
               </div>
-              <div className="text-zinc-600 pl-5 space-y-0.5 text-[11px] font-mono">
-                <div>Start: {args.startDateTime}</div>
-                <div>End:   {args.endDateTime}</div>
-                {args.description && <div className="text-zinc-500 font-sans">Description: {args.description}</div>}
+              <div className="text-zinc-600 pl-5 space-y-1 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-zinc-400" />
+                  <span>Start: <strong className="text-zinc-800 font-medium">{startTimeStr}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-zinc-400" />
+                  <span>End:   <strong className="text-zinc-800 font-medium">{endTimeStr}</strong></span>
+                </div>
+                {args.description && (
+                  <div className="text-zinc-500 font-sans mt-1 pt-1 border-t border-canvas-border/50">
+                    Description: {args.description}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {isTask && args && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-zinc-800 font-medium">
-                <CheckSquare className="w-3.5 h-3.5 text-zinc-500" />
-                <span>{tool === 'complete_task' ? `Complete: ${args.title || args.taskId}` : args.title}</span>
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-1.5 text-zinc-900 font-semibold text-xs">
+                <CheckSquare className="w-3.5 h-3.5 text-zinc-600" />
+                <span>{tool === 'complete_task' ? `Complete Task: ${args.title || args.taskId}` : args.title}</span>
               </div>
               <div className="text-zinc-600 pl-5 text-[11px] space-y-0.5">
-                {args.priority && <div>Priority: {args.priority}</div>}
-                {args.dueDate && <div className="font-mono">Due: {args.dueDate}</div>}
+                {args.priority && <div>Priority: <strong className="text-zinc-800">{args.priority}</strong></div>}
+                {args.dueDate && <div>Due: <strong className="text-zinc-800 font-mono">{formatDateTime(args.dueDate)}</strong></div>}
               </div>
             </div>
           )}
