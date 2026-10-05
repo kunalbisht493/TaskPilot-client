@@ -16,6 +16,13 @@ export default function App() {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [authBanner, setAuthBanner] = useState(null);
 
+  // Reset scroll to top on every mount/refresh — prevents browser scroll restoration
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
   // Sync OAuth redirect query parameters (?auth=success or ?auth_error=...)
   useEffect(() => {
     if (typeof window === 'undefined') return;
