@@ -11,7 +11,7 @@ import { useAuth } from './context/AuthContext';
 import { RotateCcw, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
-  const { isAuthenticated, devLogin, refreshUser } = useAuth();
+  const { isAuthenticated, loading: authLoading, devLogin, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [authBanner, setAuthBanner] = useState(null);
@@ -87,7 +87,8 @@ export default function App() {
         )}
 
         {/* Unauthenticated notice */}
-        {!isAuthenticated && (
+          {/* Unauthenticated notice -- only shown after auth check completes, prevents layout shift on refresh */}
+        {!authLoading && !isAuthenticated && (
           <div className="p-3 bg-canvas-subtle border-b border-canvas-border flex items-center justify-between text-xs text-zinc-700">
             <span>Development session inactive. Authenticate via Google OAuth or Dev Quick Login to enable tool execution and confirmations.</span>
             <button
