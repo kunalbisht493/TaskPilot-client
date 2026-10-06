@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { agentApi } from '../api/agentApi';
 
@@ -92,6 +92,8 @@ export function useAgentSession() {
         setCurrentAction(`Cycle ${data.step}: Evaluating next action...`);
       } else if (data.type === 'final_answer') {
         setFinalAnswer(data.content);
+        // Clean up empty trailing step if it only served as final answer placeholder
+        setSteps((prevSteps) => prevSteps.filter((s) => s.thought || s.tool || s.result));
       }
     };
 
@@ -110,6 +112,7 @@ export function useAgentSession() {
       if (data?.finalAnswer || data?.result?.finalAnswer) {
         setFinalAnswer(data.finalAnswer || data.result?.finalAnswer);
       }
+      setSteps((prevSteps) => prevSteps.filter((s) => s.thought || s.tool || s.result));
     };
 
     const handleError = (data) => {
@@ -158,6 +161,7 @@ export function useAgentSession() {
         if (res?.finalAnswer || res?.result?.finalAnswer) {
           setFinalAnswer(res.finalAnswer || res.result?.finalAnswer);
         }
+        setSteps((prevSteps) => prevSteps.filter((s) => s.thought || s.tool || s.result));
       }
     } catch (err) {
       console.error('Submit goal error:', err);
@@ -205,6 +209,7 @@ export function useAgentSession() {
         }
         setIsExecuting(false);
         setCurrentAction(null);
+        setSteps((prevSteps) => prevSteps.filter((s) => s.thought || s.tool || s.result));
       } else if (res?.status === 'awaiting_confirmation') {
         const nextPending = res.pendingConfirmation || res.pendingAction || res.result?.pendingAction;
         setPendingConfirmation(nextPending);

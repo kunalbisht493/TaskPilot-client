@@ -342,9 +342,16 @@ export function ReasoningFeed({
 }) {
   const endRef = useRef(null);
 
+  // Only display steps that have actual execution trace information (thought, tool call, observation),
+  // or the currently active step if the agent is still running.
+  // Suppresses empty finalization placeholders once execution is finished.
+  const visibleSteps = steps.filter(
+    (step) => step.thought || step.tool || step.result || (isExecuting && !finalAnswer)
+  );
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [steps, isExecuting, finalAnswer, error]);
+  }, [visibleSteps, isExecuting, finalAnswer, error]);
 
   return (
     <div className="flex-1 flex flex-col bg-white min-h-[500px]">
@@ -353,9 +360,9 @@ export function ReasoningFeed({
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isExecuting ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
           <span className="text-xs font-semibold text-zinc-800">Live Execution Trace</span>
-          {steps.length > 0 && (
+          {visibleSteps.length > 0 && (
             <span className="text-[10px] text-zinc-500 font-mono">
-              ({steps.length} {steps.length === 1 ? 'cycle' : 'cycles'})
+              ({visibleSteps.length} {visibleSteps.length === 1 ? 'cycle' : 'cycles'})
             </span>
           )}
         </div>
@@ -378,7 +385,7 @@ export function ReasoningFeed({
         )}
 
         {/* Empty state */}
-        {steps.length === 0 && !isExecuting && !finalAnswer && (
+        {visibleSteps.length === 0 && !isExecuting && !finalAnswer && (
           <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-zinc-500">
             <p className="text-xs text-zinc-700 font-medium">Trace idle</p>
             <p className="text-[11px] text-zinc-500 max-w-sm mt-1">
@@ -388,9 +395,9 @@ export function ReasoningFeed({
         )}
 
         {/* Timeline Trace Spine */}
-        {steps.length > 0 && (
+        {visibleSteps.length > 0 && (
           <div className="relative pl-6 border-l border-zinc-200 space-y-5 my-2">
-            {steps.map((step, idx) => {
+            {visibleSteps.map((step, idx) => {
               const isApproved = step.confirmedStatus === 'approved' || step.status === 'approved';
               const isRejected = step.confirmedStatus === 'rejected' || step.status === 'rejected';
               const isAwaiting = (step.isWriteAction || step.status === 'awaiting_confirmation') && !isApproved && !isRejected && !finalAnswer;
@@ -475,7 +482,7 @@ export function ReasoningFeed({
                   )}
 
                   {/* 4. Active reasoning placeholder if waiting for tool */}
-                  {!step.thought && !step.tool && !step.result && (
+                  {!step.thought && !step.tool && !step.result && isExecuting && !finalAnswer && (
                     <div className="flex items-center gap-2 text-xs text-zinc-500 italic py-1">
                       <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
                       <span>Evaluating next action in cycle...</span>
