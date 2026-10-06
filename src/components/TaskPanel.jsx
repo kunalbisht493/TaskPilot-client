@@ -1,10 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
-import { CheckSquare, Square, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckSquare, Square, Trash2, RefreshCw, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { taskApi } from '../api/taskApi';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 
 export function TaskPanel() {
   const { isAuthenticated } = useAuth();
+  const { socket } = useSocket();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -28,6 +30,30 @@ export function TaskPanel() {
   useEffect(() => {
     fetchTasks();
   }, [isAuthenticated]);
+
+  // Real-time synchronization when agent executes task actions
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLog = (log) => {
+      const action = (log?.action || log?.tool || '').toLowerCase();
+      if (action.includes('task')) {
+        fetchTasks();
+      }
+    };
+
+    const handleAgentComplete = () => {
+      fetchTasks();
+    };
+
+    socket.on('audit:new_log', handleLog);
+    socket.on('agent:complete', handleAgentComplete);
+
+    return () => {
+      socket.off('audit:new_log', handleLog);
+      socket.off('agent:complete', handleAgentComplete);
+    };
+  }, [socket, isAuthenticated]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
@@ -88,6 +114,29 @@ export function TaskPanel() {
     return true;
   });
 
+  const renderPriorityBadge = (priority) => {
+    const p = (priority || 'medium').toLowerCase();
+    if (p === 'high' || p === 'urgent') {
+      return (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 uppercase tracking-wider">
+          High
+        </span>
+      );
+    }
+    if (p === 'low') {
+      return (
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 border border-zinc-200 uppercase tracking-wider">
+          Low
+        </span>
+      );
+    }
+    return (
+      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">
+        Med
+      </span>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full bg-canvas-subtle">
       {/* Sub-bar: filter tabs and refresh */}
@@ -97,9 +146,9 @@ export function TaskPanel() {
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-2 py-0.5 rounded text-[11px] capitalize ${
+              className={`px-2.5 py-0.5 rounded text-[11px] capitalize transition-colors ${
                 filter === tab
-                  ? 'bg-zinc-100 text-zinc-900 font-semibold'
+                  ? 'bg-zinc-100 text-zinc-900 font-semibold shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-700'
               }`}
             >
@@ -121,7 +170,7 @@ export function TaskPanel() {
       <div className="flex-1 overflow-y-auto divide-y divide-canvas-border bg-white">
         {filteredTasks.length === 0 ? (
           <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-400 text-xs">
-            <p>0 tasks in this view</p>
+            <p className="font-medium text-zinc-600">0 tasks in this view</p>
             <p className="text-[10px] text-zinc-400 mt-0.5">Tasks created directly or by the agent persist in MongoDB.</p>
           </div>
         ) : (
@@ -131,7 +180,7 @@ export function TaskPanel() {
             return (
               <div
                 key={taskId || Math.random()}
-                className="flex items-center justify-between py-2 px-3 hover:bg-canvas-subtle transition-colors"
+                className="flex items-center justify-between py-2.5 px-3 hover:bg-canvas-subtle/80 transition-colors group"
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                   <button
@@ -145,14 +194,17 @@ export function TaskPanel() {
                       <Square className="w-3.5 h-3.5" />
                     )}
                   </button>
-                  <div className="min-w-0">
-                    <p className={`text-xs truncate ${isCompleted ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-xs leading-snug ${isCompleted ? 'line-through text-zinc-400' : 'text-zinc-800 font-medium'}`}>
                       {task.title}
                     </p>
-                    <div className="flex items-center gap-2 text-[10px] text-zinc-400">
-                      <span className="capitalize">{task.priority || 'medium'}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {renderPriorityBadge(task.priority)}
                       {task.dueDate && (
-                        <span className="font-mono">Due {new Date(task.dueDate).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
+                          <Calendar className="w-2.5 h-2.5 text-zinc-400" />
+                          Due {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -160,10 +212,10 @@ export function TaskPanel() {
 
                 <button
                   onClick={() => handleDeleteTask(taskId)}
-                  className="text-zinc-400 hover:text-rose-600 p-1 focus-ring"
+                  className="text-zinc-300 hover:text-rose-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity focus-ring rounded"
                   title="Delete task"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             );
@@ -193,7 +245,7 @@ export function TaskPanel() {
         <button
           type="submit"
           disabled={!newTitle.trim() || isAdding}
-          className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium focus-ring disabled:opacity-40"
+          className="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium focus-ring disabled:opacity-40"
         >
           Add
         </button>
