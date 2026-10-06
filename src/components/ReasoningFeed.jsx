@@ -340,7 +340,7 @@ export function ReasoningFeed({
   error, 
   goal 
 }) {
-  const endRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   // Only display steps that have actual execution trace information (thought, tool call, observation),
   // or the currently active step if the agent is still running.
@@ -349,9 +349,17 @@ export function ReasoningFeed({
     (step) => step.thought || step.tool || step.result || (isExecuting && !finalAnswer)
   );
 
+  // Auto-scroll ONLY the inner timeline container, never the browser window
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [visibleSteps, isExecuting, finalAnswer, error]);
+    if (visibleSteps.length === 0 && !isExecuting && !finalAnswer) return;
+
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [visibleSteps.length, isExecuting, finalAnswer, error]);
 
   return (
     <div className="flex-1 flex flex-col bg-white min-h-[500px]">
@@ -375,8 +383,8 @@ export function ReasoningFeed({
         )}
       </div>
 
-      {/* Trace Timeline Body */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
+      {/* Trace Timeline Body - Internal scroll container */}
+      <div ref={scrollContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
         {goal && (
           <div className="p-2.5 rounded bg-canvas-subtle border-l-2 border-zinc-800 text-xs">
             <span className="text-[10px] text-zinc-500 uppercase tracking-wide block mb-0.5 font-medium">Active Request</span>
@@ -525,8 +533,6 @@ export function ReasoningFeed({
             </div>
           </div>
         )}
-
-        <div ref={endRef} />
       </div>
     </div>
   );
