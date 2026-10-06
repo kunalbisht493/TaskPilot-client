@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp, Clock, ShieldCheck } from 'lucide-react';
 import { auditApi } from '../api/auditApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -76,6 +76,7 @@ export function AuditLogPanel() {
 
     return (
         <div className="flex flex-col h-full bg-canvas-subtle">
+            {/* Top metric bar */}
             <div className="p-2 border-b border-canvas-border flex items-center justify-between text-xs text-zinc-500 bg-white">
                 <div className="flex items-center gap-3 font-mono text-[11px]">
                     <span>Total: <strong className="text-zinc-800">{totalActions}</strong></span>
@@ -88,11 +89,24 @@ export function AuditLogPanel() {
                     <RefreshCw className={'w-3 h-3 ' + (loading ? 'animate-spin' : '')} />
                 </button>
             </div>
+
+            {/* 14-day Data Retention Policy indicator */}
+            <div className="px-3 py-1.5 bg-zinc-50 border-b border-canvas-border flex items-center justify-between text-[11px] text-zinc-600">
+                <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>Retention: Logs, traces & confirmations auto-expire after <strong>14 days</strong></span>
+                </span>
+                <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    TTL Active
+                </span>
+            </div>
+
             <div className="flex-1 overflow-y-auto bg-white">
                 {logs.length === 0 ? (
                     <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-400 text-xs">
                         <p>0 actions logged</p>
                         <p className="text-[10px] text-zinc-400 mt-0.5">Every tool invocation and confirmation is committed to MongoDB.</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Records are kept for 14 days and automatically cleaned up via TTL indexes.</p>
                     </div>
                 ) : (
                     <table className="w-full text-left text-xs text-zinc-700">

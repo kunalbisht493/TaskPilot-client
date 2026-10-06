@@ -85,7 +85,7 @@ export function TaskPanel() {
           prev.map(t => {
             const currentId = t.id || t._id;
             if (currentId === taskId) {
-              return { ...t, status: 'completed' };
+              return { ...t, status: 'completed', completedAt: new Date().toISOString() };
             }
             return t;
           })
@@ -166,12 +166,24 @@ export function TaskPanel() {
         </button>
       </div>
 
+      {/* 30-day Completed Task Retention indicator */}
+      <div className="px-3 py-1.5 bg-zinc-50 border-b border-canvas-border flex items-center justify-between text-[11px] text-zinc-600">
+        <span className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+          <span>Completed tasks auto-archive & delete after <strong>30 days</strong></span>
+        </span>
+        <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+          TTL Active
+        </span>
+      </div>
+
       {/* Task list */}
       <div className="flex-1 overflow-y-auto divide-y divide-canvas-border bg-white">
         {filteredTasks.length === 0 ? (
           <div className="h-44 flex flex-col items-center justify-center p-4 text-center text-zinc-400 text-xs">
             <p className="font-medium text-zinc-600">0 tasks in this view</p>
             <p className="text-[10px] text-zinc-400 mt-0.5">Tasks created directly or by the agent persist in MongoDB.</p>
+            <p className="text-[10px] text-zinc-400 mt-0.5">Completed tasks are automatically cleaned up after 30 days via MongoDB TTL.</p>
           </div>
         ) : (
           filteredTasks.map((task) => {
@@ -186,7 +198,7 @@ export function TaskPanel() {
                   <button
                     onClick={() => handleToggleComplete(taskId, task.status)}
                     className="text-zinc-400 hover:text-zinc-700 flex-shrink-0 focus-ring rounded p-0.5"
-                    title={isCompleted ? 'Completed' : 'Mark complete'}
+                    title={isCompleted ? 'Completed (auto-deletes in 30 days)' : 'Mark complete'}
                   >
                     {isCompleted ? (
                       <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
@@ -204,6 +216,11 @@ export function TaskPanel() {
                         <span className="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
                           <Calendar className="w-2.5 h-2.5 text-zinc-400" />
                           Due {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                      {isCompleted && task.completedAt && (
+                        <span className="font-mono text-[10px] text-zinc-400" title="Auto-expires 30 days after completion">
+                          Completed {new Date(task.completedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
                       )}
                     </div>
