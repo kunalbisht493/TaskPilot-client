@@ -196,7 +196,7 @@ export default function App() {
 
       {/* Minimal Footer */}
       <footer className="py-3 px-6 text-center text-[11px] text-zinc-400 bg-white">
-        TaskPilot - Autonomous MERN AI Agent with Hand-Built ReAct Loop and Human-in-the-Loop Confirmation
+        TaskPilot - Autonomous AI Agent
       </footer>
     </div>
   );
