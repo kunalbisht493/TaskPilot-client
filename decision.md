@@ -311,3 +311,56 @@ This document records all significant technical and design decisions made for th
   1. Eliminates noisy, duplicated step headers in the live execution feed.
   2. Guarantees that the Human-in-the-Loop confirmation modal immediately appears whenever write tools are triggered.
   3. Presents unambiguous start/end times during approval review.
+---
+
+## ADR-C018: Inner Timeline Viewport Isolation & Elimination of Window Auto-Scroll on Refresh
+
+- **Status:** Accepted
+- **Date:** 2026-10-27
+- **Context:**
+  When loading the application, refreshing the browser, or re-rendering after goal execution, the browser window uncontrollably scrolled down to the bottom of the page. This was traced to `endRef.current?.scrollIntoView({ behavior: 'smooth' })` inside `ReasoningFeed.jsx`, which forced the global window document viewport to scroll instead of constraining movement to the internal timeline container.
+
+- **Decision:**
+  1. **Container-Scoped Auto-Scroll:** Replaced `scrollIntoView()` with explicit `scrollContainerRef.current.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'smooth' })` targeted strictly to the inner overflow container (`overflow-y-auto`).
+  2. **Page Viewport Stability:** The outer page body, navigation bar, and operational side-panels maintain their exact scroll positions during refreshes and session restarts without disruptive jumping.
+
+- **Why Taken:**
+  Provides a stable, professional user experience where page refreshes and real-time log additions do not hijack the user's viewport.
+
+---
+
+## ADR-C019: 14-Day Audit Ledger Transparency & 30-Day Completed Task Retention Visibility
+
+- **Status:** Accepted
+- **Date:** 2026-10-27
+- **Context:**
+  To prevent unbounded database storage growth while providing complete operational accountability, the system adopted 14-day audit log retention and 30-day completed task expiration. The frontend required clear visual indicators of this lifecycle policy and transparent disclosure of all execution metadata (arguments, confirmation states, and tool results).
+
+- **Decision:**
+  1. **Audit Ledger Retention Header:** Added a prominent policy banner in `AuditLogPanel.jsx` stating that operational logs are retained for 14 days.
+  2. **Expanded Audit Trace Inspection:** Enhanced log entry cards to display full execution context—including user approval status (`confirmedByUser`), input arguments, tool payload summaries, and failure diagnostics.
+  3. **Completed Task TTL Status:** Added an indicator banner to `TaskPanel.jsx` displaying `"Completed tasks auto-archive & delete after 30 days"` with an active TTL badge, and contextual hover tooltips on completed task items.
+
+- **Why Taken:**
+  Ensures the user has total visibility into the data retention lifecycle and access to comprehensive audit trails without cluttering the active workflow.
+
+---
+
+## ADR-C020: Indian Date Standardization (DD-MM-YYYY, Short & Full Month) Across All Views and Inputs
+
+- **Status:** Accepted
+- **Date:** 2026-10-27
+- **Context:**
+  Default browser date formatting (`toLocaleDateString()`) produced US-centric Month-first formats (e.g. `10/23/2026` or `Oct 23, 2026`) that conflicted with the user's Indian locale requirements (`DD-MM-YYYY`, `23 Oct 2026`, or `23 October 2026`). Furthermore, browser `new Date()` failed on Indian numeric formats (`23-10-2026`) and defaulted text dates without years (e.g. `23 oct`) to year `2001`.
+
+- **Decision:**
+  1. **Client Date Utility (`src/utils/dateUtils.js`):** Implemented `parseIndianDate()` and `formatIndianDate()`:
+     - Parses `DD-MM-YYYY`, `DD/MM/YYYY`, `DD.MM.YYYY`, and `DD-MM-YY` with optional time.
+     - Parses both short and full month names (`23 oct`, `23 october`, `23 Oct 2026`, `23 October 2026`).
+     - Automatically infers the current year (`2026`) when the user omits the year.
+  2. **Universal Indian Formatting:** Formatted all rendered dates across `TaskPanel.jsx` (`Due 23 Oct 2026`, `Completed 23 Oct 2026`), `ReasoningFeed.jsx` (agent table cells and execution step timestamps), `AuditLogPanel.jsx` (log timestamps in 12-hour Indian time), and `ConfirmationModal.jsx` (event start/end times).
+  3. **Direct Indian Date Input:** Added a dedicated Due Date text input to the task creation form in `TaskPanel.jsx` with placeholder `Due (e.g. 23-10-2026, 23 oct)` which parses through `parseIndianDate` prior to API dispatch.
+  4. **Suggestion Chips Parity:** Updated prompt suggestion chips in `GoalInput.jsx` with Indian date syntax examples.
+
+- **Why Taken:**
+  Guarantees consistent, unambiguous Day-first Indian date presentation across all renders, refreshes, and modals while accepting both full and short month input forms.
