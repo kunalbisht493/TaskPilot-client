@@ -1,3 +1,4 @@
+import { formatIndianDate } from '../utils/dateUtils';
 ﻿import React, { useState } from 'react';
 import { AlertCircle, Check, X, Calendar, CheckSquare, Clock } from 'lucide-react';
 
@@ -32,12 +33,8 @@ export function ConfirmationModal({
   const formatDateTime = (val) => {
     if (!val) return 'Not specified';
     try {
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return String(val);
-      return d.toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      });
+      const formatted = formatIndianDate(val, 'short', true);
+      return formatted || String(val);
     } catch (_) {
       return String(val);
     }

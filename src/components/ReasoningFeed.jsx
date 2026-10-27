@@ -1,3 +1,4 @@
+import { formatIndianDate } from '../utils/dateUtils';
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   CheckCircle2, 
@@ -193,7 +194,7 @@ function TableCell({ cell, header = '' }) {
       return (
         <span className="inline-flex items-center gap-1 font-mono text-[11px] text-zinc-600 whitespace-nowrap">
           <Calendar className="w-3 h-3 text-zinc-400" />
-          <span>{d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          <span>{formatIndianDate(val, 'short')}</span>
         </span>
       );
     }
@@ -430,7 +431,7 @@ export function ReasoningFeed({
                   {/* Step header */}
                   <div className="flex items-center justify-between text-[11px] text-zinc-500">
                     <span className="font-mono text-zinc-700 font-semibold">Cycle {step.step || idx + 1}</span>
-                    <span className="font-mono">{step.timestamp ? new Date(step.timestamp).toLocaleTimeString() : ''}</span>
+                    <span className="font-mono">{step.timestamp ? formatIndianDate(step.timestamp, 'short', true) : ''}</span>
                   </div>
 
                   {/* 1. Reasoning Section */}

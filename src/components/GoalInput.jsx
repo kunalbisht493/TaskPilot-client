@@ -3,9 +3,9 @@ import { Send, Loader2 } from 'lucide-react';
 
 const SUGGESTIONS = [
   { label: 'Check calendar', prompt: 'Check my calendar availability for next Tuesday afternoon' },
-  { label: 'Schedule meeting', prompt: 'Schedule a sprint sync on 2026-09-30 at 14:00 for 30 minutes' },
-  { label: 'Create task', prompt: 'Create a task to prepare presentation slides before Friday' },
-  { label: 'Chained workflow', prompt: 'Schedule project debrief on 2026-10-02 at 10:00 and add a prep task' }
+  { label: 'Schedule meeting', prompt: 'Schedule a sprint sync on 23-10-2026 at 14:00 for 30 minutes' },
+  { label: 'Create task', prompt: 'Create a task to prepare presentation slides due 23 oct' },
+  { label: 'Chained workflow', prompt: 'Schedule project debrief on 23 October 2026 at 10:00 and add a prep task' }
 ];
 
 export function GoalInput({ onSubmit, isExecuting, disabled }) {

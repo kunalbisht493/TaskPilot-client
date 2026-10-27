@@ -1,3 +1,4 @@
+import { formatIndianDate, parseIndianDate } from '../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { CheckSquare, Square, Trash2, RefreshCw, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { taskApi } from '../api/taskApi';
@@ -12,6 +13,7 @@ export function TaskPanel() {
   const [filter, setFilter] = useState('all');
   const [newTitle, setNewTitle] = useState('');
   const [newPriority, setNewPriority] = useState('medium');
+  const [newDueDate, setNewDueDate] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
   const fetchTasks = async () => {
@@ -60,13 +62,20 @@ export function TaskPanel() {
     if (!newTitle.trim() || isAdding) return;
     try {
       setIsAdding(true);
+      let parsedDueDate = undefined;
+      if (newDueDate.trim()) {
+        const parsed = parseIndianDate(newDueDate.trim());
+        parsedDueDate = parsed ? parsed.toISOString() : newDueDate.trim();
+      }
       const res = await taskApi.createTask({
         title: newTitle.trim(),
         priority: newPriority,
+        ...(parsedDueDate ? { dueDate: parsedDueDate } : {}),
       });
       if (res?.task) {
         setTasks(prev => [res.task, ...prev]);
         setNewTitle('');
+        setNewDueDate('');
       }
     } catch (err) {
       const msg = err.message || err.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
@@ -259,6 +268,14 @@ export function TaskPanel() {
           <option value="medium">Med</option>
           <option value="high">High</option>
         </select>
+        <input
+          type="text"
+          value={newDueDate}
+          onChange={(e) => setNewDueDate(e.target.value)}
+          placeholder="Due (e.g. 23-10-2026, 23 oct)"
+          className="w-36 bg-white text-zinc-800 placeholder-zinc-400 rounded px-2 py-1 text-xs border border-canvas-border focus-ring font-mono"
+          title="Indian date format: DD-MM-YYYY or 23 Oct / 23 October"
+        />
         <button
           type="submit"
           disabled={!newTitle.trim() || isAdding}
