@@ -87,9 +87,18 @@ export function useAgentSession() {
       });
 
       if (data.tool) {
-        setCurrentAction(`Tool execution: ${data.tool}`);
+        const friendlyToolMap = {
+          get_current_time: 'Checking current date and time...',
+          check_calendar_availability: 'Checking calendar availability...',
+          create_calendar_event: 'Preparing calendar event...',
+          list_tasks: 'Checking existing tasks...',
+          create_task: 'Creating task...',
+          complete_task: 'Updating task status...',
+          calculate: 'Calculating duration...',
+        };
+        setCurrentAction(friendlyToolMap[data.tool] || 'Working on your request...');
       } else if (data.type === 'reasoning_start') {
-        setCurrentAction(`Cycle ${data.step}: Evaluating next action...`);
+        setCurrentAction('Working on your request...');
       } else if (data.type === 'final_answer') {
         setFinalAnswer(data.content);
         // Clean up empty trailing step if it only served as final answer placeholder

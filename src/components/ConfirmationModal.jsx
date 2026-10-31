@@ -1,6 +1,6 @@
+import React, { useState } from 'react';
 import { formatIndianDate } from '../utils/dateUtils';
-﻿import React, { useState } from 'react';
-import { AlertCircle, Check, X, Calendar, CheckSquare, Clock } from 'lucide-react';
+import { AlertCircle, Check, X, Calendar, CheckSquare, Clock, MapPin } from 'lucide-react';
 
 export function ConfirmationModal({ 
   confirmation, 
@@ -30,6 +30,12 @@ export function ConfirmationModal({
   const isCalendar = tool === 'create_calendar_event';
   const isTask = tool === 'create_task' || tool === 'complete_task';
 
+  const friendlyActionName = {
+    create_calendar_event: 'Schedule Calendar Event',
+    create_task: 'Create New Task',
+    complete_task: 'Complete Task',
+  }[tool] || tool.replace(/_/g, ' ');
+
   const formatDateTime = (val) => {
     if (!val) return 'Not specified';
     try {
@@ -49,36 +55,36 @@ export function ConfirmationModal({
         role="dialog"
         aria-labelledby="confirm-dialog-title"
         aria-modal="true"
-        className="bg-white border border-canvas-border rounded-lg max-w-md w-full p-4 text-zinc-900 shadow-xl"
+        className="bg-white border border-canvas-border rounded-xl max-w-md w-full p-4 sm:p-5 text-zinc-900 shadow-xl"
       >
         {/* Header */}
-        <div className="flex items-start gap-2.5 mb-3">
-          <div className="p-1.5 rounded bg-amber-50 border border-amber-200 text-amber-700 flex-shrink-0">
+        <div className="flex items-start gap-2.5 mb-3.5">
+          <div className="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex-shrink-0">
             <AlertCircle className="w-4 h-4" />
           </div>
           <div>
             <h3 id="confirm-dialog-title" className="text-sm font-semibold text-zinc-900">
-              Confirmation required
+              Confirmation Required
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">
-              The agent proposed a mutating write action. Review parameters before approving.
+              The assistant is requesting your approval before making this update.
             </p>
           </div>
         </div>
 
         {/* Parameters Box */}
-        <div className="bg-canvas-subtle rounded border border-canvas-border p-3 space-y-2 mb-4 text-xs">
-          <div className="flex items-center justify-between pb-1.5 border-b border-canvas-border">
-            <span className="text-zinc-500">Target tool:</span>
-            <span className="font-mono text-zinc-800 bg-white px-1.5 py-0.5 rounded border border-canvas-border font-medium">
-              {tool}
+        <div className="bg-canvas-subtle rounded-lg border border-canvas-border p-3.5 space-y-2.5 mb-4 text-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-canvas-border">
+            <span className="text-zinc-500 font-medium">Proposed Action:</span>
+            <span className="text-zinc-900 bg-white px-2 py-0.5 rounded border border-canvas-border font-medium text-xs">
+              {friendlyActionName}
             </span>
           </div>
 
           {isCalendar && args && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-2 pt-0.5">
               <div className="flex items-center gap-1.5 text-zinc-900 font-semibold text-xs">
-                <Calendar className="w-3.5 h-3.5 text-zinc-600" />
+                <Calendar className="w-3.5 h-3.5 text-zinc-700" />
                 <span>{args.summary || args.title || 'Calendar Event'}</span>
               </div>
               <div className="text-zinc-600 pl-5 space-y-1 text-[11px]">
@@ -88,11 +94,17 @@ export function ConfirmationModal({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3 h-3 text-zinc-400" />
-                  <span>End:   <strong className="text-zinc-800 font-medium">{endTimeStr}</strong></span>
+                  <span>End: <strong className="text-zinc-800 font-medium">{endTimeStr}</strong></span>
                 </div>
+                {args.location && (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3 text-zinc-400" />
+                    <span>Location: <strong className="text-zinc-800 font-medium">{args.location}</strong></span>
+                  </div>
+                )}
                 {args.description && (
-                  <div className="text-zinc-500 font-sans mt-1 pt-1 border-t border-canvas-border/50">
-                    Description: {args.description}
+                  <div className="text-zinc-500 font-sans mt-1.5 pt-1.5 border-t border-canvas-border/50">
+                    {args.description}
                   </div>
                 )}
               </div>
@@ -100,31 +112,31 @@ export function ConfirmationModal({
           )}
 
           {isTask && args && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-1.5 pt-0.5">
               <div className="flex items-center gap-1.5 text-zinc-900 font-semibold text-xs">
-                <CheckSquare className="w-3.5 h-3.5 text-zinc-600" />
+                <CheckSquare className="w-3.5 h-3.5 text-zinc-700" />
                 <span>{tool === 'complete_task' ? `Complete Task: ${args.title || args.taskId}` : args.title}</span>
               </div>
-              <div className="text-zinc-600 pl-5 text-[11px] space-y-0.5">
-                {args.priority && <div>Priority: <strong className="text-zinc-800">{args.priority}</strong></div>}
-                {args.dueDate && <div>Due: <strong className="text-zinc-800 font-mono">{formatDateTime(args.dueDate)}</strong></div>}
+              <div className="text-zinc-600 pl-5 text-[11px] space-y-1">
+                {args.priority && <div>Priority: <strong className="text-zinc-800 capitalize font-medium">{args.priority}</strong></div>}
+                {args.dueDate && <div>Due: <strong className="text-zinc-800 font-mono font-medium">{formatDateTime(args.dueDate)}</strong></div>}
               </div>
             </div>
           )}
 
           {description && (
-            <p className="text-xs text-zinc-500 italic pt-1 border-t border-canvas-border">
+            <p className="text-[11px] text-zinc-500 italic pt-1.5 border-t border-canvas-border">
               "{description}"
             </p>
           )}
         </div>
 
         {/* Action controls */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           <button
             onClick={() => handleAction(false)}
             disabled={submitting}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-canvas-border bg-white hover:bg-canvas-subtle text-zinc-700 text-xs font-medium focus-ring disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-canvas-border bg-white hover:bg-canvas-subtle text-zinc-700 text-xs font-medium focus-ring disabled:opacity-50 transition-colors"
           >
             <X className="w-3.5 h-3.5 text-rose-600" />
             <span>Reject</span>
@@ -132,7 +144,7 @@ export function ConfirmationModal({
           <button
             onClick={() => handleAction(true)}
             disabled={submitting}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium focus-ring disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium focus-ring disabled:opacity-50 transition-colors"
           >
             <Check className="w-3.5 h-3.5" />
             <span>{submitting ? 'Executing...' : 'Approve'}</span>

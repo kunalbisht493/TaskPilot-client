@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { GoalInput } from './components/GoalInput';
 import { ReasoningFeed } from './components/ReasoningFeed';
@@ -118,8 +118,12 @@ export default function App() {
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-[580px] border-b border-canvas-border">
           {/* Left Pane: Execution Trace Timeline (7 cols) */}
           <div className="lg:col-span-7 flex flex-col border-b lg:border-b-0 lg:border-r border-canvas-border">
-            <div className="px-4 py-1.5 border-b border-canvas-border bg-white flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-              <span>SESSION: {conversationId.substring(0, 16)}</span>
+            <div className="px-4 py-1.5 border-b border-canvas-border bg-white flex items-center justify-between text-[11px] text-zinc-500">
+              <div className="flex items-center gap-1.5 font-sans">
+                <span className="font-medium text-zinc-700">Chat</span>
+                <span className="text-zinc-300">•</span>
+                <span className="text-[10px] text-zinc-400 font-mono">{conversationId.substring(0, 12)}</span>
+              </div>
               {steps.length > 0 && (
                 <button
                   onClick={resetSession}
