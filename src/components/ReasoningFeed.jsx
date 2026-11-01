@@ -20,28 +20,45 @@ import {
   FileText
 } from 'lucide-react';
 
+/**
+ * Strips any literal double-asterisks or markdown bold artifacts from strings
+ */
+function cleanMarkdownArtifacts(str) {
+  if (!str) return '';
+  return String(str).replace(/\*\*/g, '').trim();
+}
+
+/**
+ * Parses inline formatting (bold, italic, code, links) while guaranteeing
+ * no literal ** artifacts ever appear in rendered text.
+ */
 function parseInline(str) {
   if (!str) return '';
   const parts = [];
-  const regex = /(\*\*.*?\*\*|\*[^*]+?\*|`[^`]+?`|https?:\/\/[^\s]+|\[.*?\]\(.*?\))/g;
+  const regex = /(\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`|https?:\/\/[^\s]+|\[.*?\]\(.*?\))/g;
   let lastIndex = 0;
   let match;
 
   while ((match = regex.exec(str)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(str.substring(lastIndex, match.index));
+      // Remove any stray ** from plain text slices
+      const plain = str.substring(lastIndex, match.index).replace(/\*\*/g, '');
+      if (plain) parts.push(plain);
     }
+
     const token = match[0];
     if (token.startsWith('**') && token.endsWith('**')) {
+      const innerText = token.slice(2, -2).replace(/\*\*/g, '').trim();
       parts.push(
         <strong key={match.index} className="font-semibold text-zinc-900">
-          {token.slice(2, -2)}
+          {innerText}
         </strong>
       );
     } else if (token.startsWith('*') && token.endsWith('*')) {
+      const innerText = token.slice(1, -1).replace(/\*/g, '').trim();
       parts.push(
         <em key={match.index} className="italic text-zinc-800">
-          {token.slice(1, -1)}
+          {innerText}
         </em>
       );
     } else if (token.startsWith('`') && token.endsWith('`')) {
@@ -53,6 +70,7 @@ function parseInline(str) {
     } else if (token.startsWith('[') && token.includes('](')) {
       const linkMatch = token.match(/\[(.*?)\]\((.*?)\)/);
       if (linkMatch) {
+        const linkLabel = cleanMarkdownArtifacts(linkMatch[1]);
         parts.push(
           <a
             key={match.index}
@@ -61,7 +79,7 @@ function parseInline(str) {
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline font-medium break-all"
           >
-            <span>{linkMatch[1]}</span>
+            <span>{linkLabel}</span>
             <ExternalLink className="w-2.5 h-2.5 inline" />
           </a>
         );
@@ -84,15 +102,16 @@ function parseInline(str) {
   }
 
   if (lastIndex < str.length) {
-    parts.push(str.substring(lastIndex));
+    const remaining = str.substring(lastIndex).replace(/\*\*/g, '');
+    if (remaining) parts.push(remaining);
   }
 
-  return parts.length > 0 ? parts : str;
+  return parts.length > 0 ? parts : cleanMarkdownArtifacts(str);
 }
 
 function TableCell({ cell, header = '' }) {
   const [copied, setCopied] = useState(false);
-  const val = (cell || '').trim();
+  const val = cleanMarkdownArtifacts(cell || '');
   const valLower = val.toLowerCase();
   const headerLower = header.toLowerCase();
 
@@ -225,7 +244,7 @@ function MarkdownTable({ headers, rows }) {
                   key={i}
                   className="px-3 py-2 text-[11px] font-semibold text-zinc-600 uppercase tracking-wider whitespace-nowrap"
                 >
-                  {h}
+                  {cleanMarkdownArtifacts(h)}
                 </th>
               ))}
             </tr>
@@ -248,7 +267,7 @@ function MarkdownTable({ headers, rows }) {
 }
 
 /**
- * Renders structured event/meeting details cleanly with icons
+ * Renders structured event/meeting details cleanly with icons, zero markdown artifacts
  */
 function MeetingCard({ items, isConflict = false }) {
   const getIcon = (label = '') => {
@@ -261,8 +280,8 @@ function MeetingCard({ items, isConflict = false }) {
     return <FileText className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />;
   };
 
-  const titleItem = items.find(i => /^(meeting|title)$/i.test(i.key));
-  const otherItems = items.filter(i => !/^(meeting|title)$/i.test(i.key));
+  const titleItem = items.find(i => /^(meeting|title|summary|event)$/i.test(i.key));
+  const otherItems = items.filter(i => !/^(meeting|title|summary|event)$/i.test(i.key));
 
   return (
     <div className={`my-3 p-3.5 rounded-lg border text-xs ${
@@ -274,7 +293,7 @@ function MeetingCard({ items, isConflict = false }) {
         <div className="font-semibold text-sm text-zinc-900 pb-2 mb-2 border-b border-zinc-200/70 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Calendar className={`w-4 h-4 flex-shrink-0 ${isConflict ? 'text-amber-600' : 'text-zinc-700'}`} />
-            <span className="truncate">{titleItem.value}</span>
+            <span className="truncate">{cleanMarkdownArtifacts(titleItem.value)}</span>
           </div>
           {isConflict && (
             <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/80 flex-shrink-0">
@@ -285,19 +304,24 @@ function MeetingCard({ items, isConflict = false }) {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-zinc-700">
-        {otherItems.map((item, idx) => (
-          <div key={idx} className="flex items-start gap-2">
-            <span className="mt-0.5">{getIcon(item.key)}</span>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium block">
-                {item.key}
-              </span>
-              <span className="text-zinc-900 font-medium text-xs break-words">
-                {parseInline(item.value)}
-              </span>
+        {otherItems.map((item, idx) => {
+          const cleanKey = cleanMarkdownArtifacts(item.key);
+          const cleanVal = cleanMarkdownArtifacts(item.value);
+
+          return (
+            <div key={idx} className="flex items-start gap-2">
+              <span className="mt-0.5">{getIcon(cleanKey)}</span>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium block">
+                  {cleanKey}
+                </span>
+                <span className="text-zinc-900 font-medium text-xs break-words">
+                  {parseInline(cleanVal)}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -367,7 +391,10 @@ function FormattedMessage({ text, isConflict = false }) {
         if (lines[i].trim() !== '') {
           const match = lines[i].trim().match(kvPattern);
           if (match) {
-            cardItems.push({ key: match[1].trim(), value: match[2].trim() });
+            cardItems.push({ 
+              key: cleanMarkdownArtifacts(match[1]), 
+              value: cleanMarkdownArtifacts(match[2]) 
+            });
           }
         }
         i++;
@@ -381,8 +408,17 @@ function FormattedMessage({ text, isConflict = false }) {
     // Markdown headings (#, ##, ###)
     if (line.trim().startsWith('#')) {
       const level = (line.trim().match(/^#+/) || ['#'])[0].length;
-      const content = line.trim().replace(/^#+\s*/, '').replace(/^(?:📅|⚠️|🎉|🛑|💡|📌)\s*/u, '');
+      const rawContent = line.trim().replace(/^#+\s*/, '').replace(/^(?:📅|⚠️|🎉|🛑|💡|📌)\s*/u, '');
+      const content = cleanMarkdownArtifacts(rawContent);
       blocks.push({ type: 'heading', level, content });
+      i++;
+      continue;
+    }
+
+    // Standalone prominent title line (e.g. "There's a scheduling conflict.")
+    const isStandaloneTitle = i === 0 && /^there'?s a scheduling conflict/i.test(line.trim());
+    if (isStandaloneTitle) {
+      blocks.push({ type: 'heading', level: 3, content: cleanMarkdownArtifacts(line.trim()) });
       i++;
       continue;
     }
@@ -393,7 +429,7 @@ function FormattedMessage({ text, isConflict = false }) {
   }
 
   return (
-    <div className="space-y-2 text-xs text-zinc-800 leading-relaxed font-sans">
+    <div className="space-y-2.5 text-xs text-zinc-800 leading-relaxed font-sans">
       {blocks.map((block, idx) => {
         if (block.type === 'card') {
           return <MeetingCard key={idx} items={block.items} isConflict={isConflict} />;
@@ -414,7 +450,7 @@ function FormattedMessage({ text, isConflict = false }) {
         if (block.type === 'heading') {
           return (
             <h4 key={idx} className="text-sm font-semibold text-zinc-900 mt-2 mb-1 flex items-center gap-1.5">
-              <span>{parseInline(block.content)}</span>
+              <span>{block.content}</span>
             </h4>
           );
         }
@@ -433,8 +469,8 @@ function FormattedMessage({ text, isConflict = false }) {
 
         if (isPromptQuestion) {
           return (
-            <div key={idx} className="pt-1.5 font-medium text-zinc-900 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>
+            <div key={idx} className="pt-2 font-medium text-zinc-900 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-700 flex-shrink-0"></span>
               <span>{parseInline(content)}</span>
             </div>
           );
@@ -511,7 +547,7 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
         });
       }
     } else if (tool === 'create_calendar_event') {
-      const title = step.args?.summary ? `"${step.args.summary}"` : 'meeting';
+      const title = step.args?.summary ? `"${cleanMarkdownArtifacts(step.args.summary)}"` : 'meeting';
       if (isAwaiting) {
         activities.push({
           id: `cal_create_${idx}`,
@@ -538,7 +574,7 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
         status: isDone ? 'completed' : 'in_progress',
       });
     } else if (tool === 'create_task') {
-      const title = step.args?.title ? `"${step.args.title}"` : 'task';
+      const title = step.args?.title ? `"${cleanMarkdownArtifacts(step.args.title)}"` : 'task';
       if (isAwaiting) {
         activities.push({
           id: `task_create_${idx}`,
@@ -559,7 +595,7 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
         });
       }
     } else if (tool === 'complete_task') {
-      const title = step.args?.title ? `"${step.args.title}"` : 'task';
+      const title = step.args?.title ? `"${cleanMarkdownArtifacts(step.args.title)}"` : 'task';
       if (isAwaiting) {
         activities.push({
           id: `task_complete_${idx}`,
@@ -586,7 +622,7 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
         status: isDone ? 'completed' : 'in_progress',
       });
     } else {
-      const friendlyName = tool.replace(/_/g, ' ');
+      const friendlyName = cleanMarkdownArtifacts(tool.replace(/_/g, ' '));
       activities.push({
         id: `tool_${idx}`,
         label: isDone ? `Completed ${friendlyName}` : `Processing ${friendlyName}...`,
@@ -612,6 +648,7 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
 
 /**
  * Compact, clean activity checklist component
+ * Displays "X actions completed" summary with "View steps" / "Hide steps"
  */
 function ActivityDisplay({ steps, isExecuting, finalAnswer }) {
   const [expanded, setExpanded] = useState(false);

@@ -2,16 +2,137 @@ import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { agentApi } from '../api/agentApi';
 
+const SESSION_ID_KEY = 'taskpilot_session_id';
+const CONVERSATION_ID_KEY = 'taskpilot_conversation_id';
+const STEPS_KEY = 'taskpilot_steps';
+const FINAL_ANSWER_KEY = 'taskpilot_final_answer';
+const ACTIVE_GOAL_KEY = 'taskpilot_active_goal';
+const PENDING_CONF_KEY = 'taskpilot_pending_confirmation';
+
+const generateSessionId = () => 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+const generateConversationId = () => 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+const getOrGenerateSessionId = () => {
+  if (typeof window === 'undefined') return generateSessionId();
+  try {
+    const existing = window.localStorage.getItem(SESSION_ID_KEY);
+    if (existing && existing.trim()) {
+      return existing.trim();
+    }
+    const newId = generateSessionId();
+    window.localStorage.setItem(SESSION_ID_KEY, newId);
+    return newId;
+  } catch (err) {
+    console.warn('[Storage] Failed to access localStorage for sessionId:', err);
+    return generateSessionId();
+  }
+};
+
+const getOrGenerateConversationId = () => {
+  if (typeof window === 'undefined') return generateConversationId();
+  try {
+    const existing = window.localStorage.getItem(CONVERSATION_ID_KEY);
+    if (existing && existing.trim()) {
+      return existing.trim();
+    }
+    const newId = generateConversationId();
+    window.localStorage.setItem(CONVERSATION_ID_KEY, newId);
+    return newId;
+  } catch (err) {
+    console.warn('[Storage] Failed to access localStorage for conversationId:', err);
+    return generateConversationId();
+  }
+};
+
+const safeGetStorage = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const item = window.localStorage.getItem(key);
+    if (!item) return fallback;
+    return JSON.parse(item);
+  } catch (err) {
+    console.warn(`[Storage] Failed to parse ${key}:`, err);
+    return fallback;
+  }
+};
+
+const safeGetStringStorage = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const val = window.localStorage.getItem(key);
+    return val !== null ? val : fallback;
+  } catch (err) {
+    console.warn(`[Storage] Failed to read string ${key}:`, err);
+    return fallback;
+  }
+};
+
+const safeSetStorage = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    window.localStorage.setItem(key, serialized);
+  } catch (err) {
+    console.warn(`[Storage] Failed to set ${key}:`, err);
+  }
+};
+
+const safeRemoveStorage = (key) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch (err) {
+    console.warn(`[Storage] Failed to remove ${key}:`, err);
+  }
+};
+
 export function useAgentSession() {
   const { socket, isConnected } = useSocket();
-  const [conversationId, setConversationId] = useState(() => 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
-  const [steps, setSteps] = useState([]);
+  const [sessionId] = useState(getOrGenerateSessionId);
+  const [conversationId, setConversationId] = useState(getOrGenerateConversationId);
+  const [steps, setSteps] = useState(() => safeGetStorage(STEPS_KEY, []));
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
-  const [pendingConfirmation, setPendingConfirmation] = useState(null);
-  const [finalAnswer, setFinalAnswer] = useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(() => safeGetStorage(PENDING_CONF_KEY, null));
+  const [finalAnswer, setFinalAnswer] = useState(() => safeGetStringStorage(FINAL_ANSWER_KEY, null));
   const [error, setError] = useState(null);
-  const [activeGoal, setActiveGoal] = useState('');
+  const [activeGoal, setActiveGoal] = useState(() => safeGetStringStorage(ACTIVE_GOAL_KEY, ''));
+
+  // Sync conversation steps to storage across browser refreshes
+  useEffect(() => {
+    if (steps && steps.length > 0) {
+      safeSetStorage(STEPS_KEY, steps);
+    } else {
+      safeRemoveStorage(STEPS_KEY);
+    }
+  }, [steps]);
+
+  // Sync final answer to storage
+  useEffect(() => {
+    if (finalAnswer) {
+      safeSetStorage(FINAL_ANSWER_KEY, finalAnswer);
+    } else {
+      safeRemoveStorage(FINAL_ANSWER_KEY);
+    }
+  }, [finalAnswer]);
+
+  // Sync active goal to storage
+  useEffect(() => {
+    if (activeGoal) {
+      safeSetStorage(ACTIVE_GOAL_KEY, activeGoal);
+    } else {
+      safeRemoveStorage(ACTIVE_GOAL_KEY);
+    }
+  }, [activeGoal]);
+
+  // Sync pending confirmation to storage
+  useEffect(() => {
+    if (pendingConfirmation) {
+      safeSetStorage(PENDING_CONF_KEY, pendingConfirmation);
+    } else {
+      safeRemoveStorage(PENDING_CONF_KEY);
+    }
+  }, [pendingConfirmation]);
 
   // Join the conversation room whenever conversationId or socket changes
   useEffect(() => {
@@ -154,7 +275,7 @@ export function useAgentSession() {
     setSteps([]);
 
     try {
-      const res = await agentApi.startTask({ goal, conversationId });
+      const res = await agentApi.startTask({ goal, conversationId, sessionId });
       console.log('Agent REST response:', res);
       
       if (res?.status === 'awaiting_confirmation') {
@@ -191,6 +312,8 @@ export function useAgentSession() {
       const res = await agentApi.confirmAction({
         confirmationId: confId,
         approved,
+        conversationId,
+        sessionId,
       });
 
       console.log('Confirmation REST response:', res);
@@ -236,10 +359,13 @@ export function useAgentSession() {
     }
   };
 
-  // Reset conversation
+  // Reset conversation: retains persistent Session ID while generating a fresh Conversation ID
   const resetSession = () => {
-    const newId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-    setConversationId(newId);
+    const newConvId = generateConversationId();
+    setConversationId(newConvId);
+    safeSetStorage(CONVERSATION_ID_KEY, newConvId);
+
+    // Clear active conversation history & UI state
     setSteps([]);
     setIsExecuting(false);
     setCurrentAction(null);
@@ -247,9 +373,16 @@ export function useAgentSession() {
     setFinalAnswer(null);
     setError(null);
     setActiveGoal('');
+
+    // Clear saved conversation history from storage
+    safeRemoveStorage(STEPS_KEY);
+    safeRemoveStorage(FINAL_ANSWER_KEY);
+    safeRemoveStorage(ACTIVE_GOAL_KEY);
+    safeRemoveStorage(PENDING_CONF_KEY);
   };
 
   return {
+    sessionId,
     conversationId,
     steps,
     isExecuting,

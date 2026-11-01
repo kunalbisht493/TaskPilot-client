@@ -47,6 +47,7 @@ export default function App() {
   }, [refreshUser]);
 
   const {
+    sessionId,
     conversationId,
     steps,
     isExecuting,
@@ -119,20 +120,35 @@ export default function App() {
           {/* Left Pane: Execution Trace Timeline (7 cols) */}
           <div className="lg:col-span-7 flex flex-col border-b lg:border-b-0 lg:border-r border-canvas-border">
             <div className="px-4 py-1.5 border-b border-canvas-border bg-white flex items-center justify-between text-[11px] text-zinc-500">
-              <div className="flex items-center gap-1.5 font-sans">
-                <span className="font-medium text-zinc-700">Chat</span>
+              <div className="flex items-center gap-2 sm:gap-3 font-sans text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-500 font-medium">Session:</span>
+                  <span
+                    className="text-[10px] text-zinc-600 font-mono bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200"
+                    title={sessionId}
+                  >
+                    {sessionId ? sessionId.substring(0, 14) : '—'}
+                  </span>
+                </div>
                 <span className="text-zinc-300">•</span>
-                <span className="text-[10px] text-zinc-400 font-mono">{conversationId.substring(0, 12)}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-500 font-medium">Conversation:</span>
+                  <span
+                    className="text-[10px] text-zinc-600 font-mono bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200"
+                    title={conversationId}
+                  >
+                    {conversationId ? conversationId.substring(0, 14) : '—'}
+                  </span>
+                </div>
               </div>
-              {steps.length > 0 && (
-                <button
-                  onClick={resetSession}
-                  className="flex items-center gap-1 text-zinc-500 hover:text-zinc-800 font-sans focus-ring rounded"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset</span>
-                </button>
-              )}
+              <button
+                onClick={resetSession}
+                className="flex items-center gap-1 text-zinc-500 hover:text-zinc-800 font-sans focus-ring rounded px-1.5 py-0.5 hover:bg-zinc-100 transition-colors"
+                title="Reset conversation (generates new Conversation ID while preserving Session ID)"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
             </div>
 
             <ReasoningFeed
