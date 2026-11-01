@@ -87,7 +87,7 @@ const safeRemoveStorage = (key) => {
 };
 
 export function useAgentSession() {
-  const { socket, isConnected } = useSocket();
+  const { socket, updateSocketAuth } = useSocket();
   const [sessionId] = useState(getOrGenerateSessionId);
   const [conversationId, setConversationId] = useState(getOrGenerateConversationId);
   const [steps, setSteps] = useState(() => safeGetStorage(STEPS_KEY, []));
@@ -134,17 +134,34 @@ export function useAgentSession() {
     }
   }, [pendingConfirmation]);
 
-  // Join the conversation room whenever conversationId or socket changes
+  // Join the conversation room whenever conversationId or socket changes, and ensure re-join upon reconnection
   useEffect(() => {
-    if (!socket || !isConnected) return;
-    
-    socket.emit('join_conversation', conversationId);
-    console.log('[Socket] Joined conversation room:', conversationId);
+    if (!socket || !conversationId) return;
+
+    const joinRoom = () => {
+      // Synchronize socket handshake auth for transparent reconnection
+      if (updateSocketAuth) {
+        updateSocketAuth({ conversationId, sessionId });
+      }
+      socket.emit('join_conversation', conversationId);
+      console.log('[Socket] Joined conversation room:', conversationId);
+    };
+
+    // If socket is already connected, join immediately
+    if (socket.connected) {
+      joinRoom();
+    }
+
+    // Always re-join on reconnect or connect
+    socket.on('connect', joinRoom);
 
     return () => {
-      socket.emit('leave_conversation', conversationId);
+      socket.off('connect', joinRoom);
+      if (socket.connected && conversationId) {
+        socket.emit('leave_conversation', conversationId);
+      }
     };
-  }, [socket, isConnected, conversationId]);
+  }, [socket, conversationId, sessionId, updateSocketAuth]);
 
   // Socket event listeners for real-time streaming
   useEffect(() => {
@@ -362,6 +379,19 @@ export function useAgentSession() {
   // Reset conversation: retains persistent Session ID while generating a fresh Conversation ID
   const resetSession = () => {
     const newConvId = generateConversationId();
+    const oldConvId = conversationId;
+
+    // Explicitly transition rooms on the live socket
+    if (socket && socket.connected) {
+      if (oldConvId) {
+        socket.emit('leave_conversation', oldConvId);
+      }
+      if (updateSocketAuth) {
+        updateSocketAuth({ conversationId: newConvId, sessionId });
+      }
+      socket.emit('join_conversation', newConvId);
+    }
+
     setConversationId(newConvId);
     safeSetStorage(CONVERSATION_ID_KEY, newConvId);
 
