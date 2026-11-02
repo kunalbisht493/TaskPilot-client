@@ -532,7 +532,8 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
         status: isDone ? 'completed' : 'in_progress',
       });
     } else if (tool === 'check_calendar_availability') {
-      const hasConflicts = step.result?.hasConflicts || step.result?.totalEvents > 0;
+      const hasConflicts = step.result?.hasConflicts === true || (step.result?.totalEvents > 0 && step.result?.hasConflicts !== false);
+      const isRetrieved = step.result?.calendarRetrieved !== false && step.result?.connected !== false;
       activities.push({
         id: `cal_avail_${idx}`,
         label: isDone ? 'Checked calendar availability' : 'Checking calendar availability...',
@@ -542,7 +543,11 @@ function getCleanActivities(steps = [], isExecuting = false, finalAnswer = null)
       if (isDone) {
         activities.push({
           id: `cal_conflicts_${idx}`,
-          label: hasConflicts ? 'Reviewed existing meetings & conflicts' : 'Verified schedule is clear',
+          label: hasConflicts
+            ? 'Reviewed existing meetings & conflicts'
+            : isRetrieved
+            ? 'Verified schedule is clear'
+            : 'Checked calendar availability',
           status: 'completed',
         });
       }
@@ -719,15 +724,88 @@ function ActivityDisplay({ steps, isExecuting, finalAnswer }) {
 }
 
 /**
+ * Accurately determines if an active scheduling conflict exists:
+ * 1. Inspects the latest calendar tool results from the current execution session.
+ * 2. Checks text for explicit negation/clear schedule indicators ("no conflicts", "slot is free").
+ * 3. Only triggers when conflict is genuinely confirmed.
+ */
+function getSchedulingConflictStatus(text, steps = []) {
+  const calendarSteps = steps.filter(
+    (s) => s.tool === 'check_calendar_availability' || s.tool === 'create_calendar_event'
+  );
+
+  if (calendarSteps.length > 0) {
+    const latestCalStep = calendarSteps[calendarSteps.length - 1];
+    const res = latestCalStep.result;
+
+    if (res) {
+      if (latestCalStep.tool === 'check_calendar_availability') {
+        if (res.hasConflicts === false || res.isAvailable === true || res.totalEvents === 0) {
+          return false;
+        }
+        if (res.hasConflicts === true || (Array.isArray(res.events) && res.events.length > 0 && res.isAvailable === false)) {
+          return true;
+        }
+      }
+
+      if (latestCalStep.tool === 'create_calendar_event') {
+        if (res.conflict === true || res.overlap === true) {
+          return true;
+        }
+        if (res.success === true) {
+          return false;
+        }
+      }
+    }
+  }
+
+  if (!text || typeof text !== 'string') return false;
+
+  const lower = text.toLowerCase();
+
+  // Explicit free/unoccupied indicators take precedence over naive keyword matches
+  const indicatesFree =
+    /no\s+(?:scheduling\s+)?conflicts?/i.test(lower) ||
+    /no\s+overlapping/i.test(lower) ||
+    /no\s+overlap/i.test(lower) ||
+    /no\s+events\s+(?:are\s+)?scheduled/i.test(lower) ||
+    /no\s+meetings?\s+(?:are\s+)?scheduled/i.test(lower) ||
+    /nothing\s+(?:is\s+)?(?:already\s+)?scheduled/i.test(lower) ||
+    /not\s+already\s+scheduled/i.test(lower) ||
+    /slot\s+is\s+(?:completely\s+)?free/i.test(lower) ||
+    /time\s+is\s+(?:completely\s+)?free/i.test(lower) ||
+    /schedule\s+is\s+clear/i.test(lower) ||
+    /without\s+(?:any\s+)?conflicts?/i.test(lower) ||
+    /free\s+slot/i.test(lower) ||
+    /available\s+slot/i.test(lower);
+
+  if (indicatesFree) {
+    return false;
+  }
+
+  // Positive assertions of conflict
+  const indicatesConflict =
+    /(?:there\s+is|there's|detected|found)\s+(?:an?\s+)?(?:scheduling\s+)?conflict/i.test(lower) ||
+    /(?:meeting\s+)?overlap\s+detected/i.test(lower) ||
+    /conflict\s+detected/i.test(lower) ||
+    /double-?booking/i.test(lower) ||
+    /already\s+scheduled\s+(?:during|at|for|on)\s+this/i.test(lower) ||
+    /conflicts?\s+with\s+(?:an?\s+)?existing/i.test(lower) ||
+    /existing\s+meeting\s+is\s+already/i.test(lower);
+
+  return Boolean(indicatesConflict);
+}
+
+/**
  * Polished, user-ready Assistant Response Card
  */
-function AssistantResponseCard({ text }) {
+function AssistantResponseCard({ text, steps = [] }) {
   const [copied, setCopied] = useState(false);
 
   if (!text) return null;
 
-  const isConflict = /conflict|overlap|already scheduled/i.test(text);
-  const isSuccess = /scheduled successfully|created successfully|task created|task complete/i.test(text);
+  const isConflict = getSchedulingConflictStatus(text, steps);
+  const isSuccess = !isConflict && /scheduled successfully|created successfully|task created|task complete/i.test(text);
 
   const handleCopy = () => {
     if (navigator.clipboard) {
@@ -861,7 +939,7 @@ export function ReasoningFeed({
 
         {/* Polished Assistant Response */}
         {finalAnswer && (
-          <AssistantResponseCard text={finalAnswer} />
+          <AssistantResponseCard text={finalAnswer} steps={steps} />
         )}
 
         {/* Error notification */}
