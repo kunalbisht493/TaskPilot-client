@@ -12,14 +12,13 @@ import {
     ExternalLink,
     Calendar,
     CheckSquare,
-    Code,
     Filter,
     RotateCcw,
     MapPin,
     Users,
     FileText,
 } from 'lucide-react';
-import { formatIndianDate, formatISTTime } from '../utils/dateUtils';
+import { formatIndianDate, formatISTTime, formatISTWeekday } from '../utils/dateUtils';
 import { auditApi } from '../api/auditApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -151,38 +150,6 @@ function extractMeetUrl(log) {
 }
 
 /**
- * Extracts available task or calendar event ID for technical inspection.
- */
-function extractEntityId(log) {
-    const result = log?.result !== undefined ? log?.result : log?.outputResult;
-    const args = log?.args || log?.inputArgs;
-    return (
-        result?.eventId ||
-        result?.id ||
-        result?._id ||
-        result?.taskId ||
-        result?.task?._id ||
-        result?.task?.id ||
-        args?.taskId ||
-        args?.id ||
-        null
-    );
-}
-
-/**
- * Extracts error details if an action failed.
- */
-function extractErrorDetails(log) {
-    const result = log?.result !== undefined ? log?.result : log?.outputResult;
-    if (log?.error) return typeof log.error === 'object' ? JSON.stringify(log.error) : String(log.error);
-    if (result?.error) return typeof result.error === 'object' ? JSON.stringify(result.error) : String(result.error);
-    if (log?.success === false && result?.message) return String(result.message);
-    if (log?.status === 'error' || log?.status === 'failed') return 'Action execution reported failure';
-    if (result?.cancelled) return 'Action was cancelled or rejected by user';
-    return null;
-}
-
-/**
  * Priority badge helper
  */
 function getPriorityBadge(priority) {
@@ -240,7 +207,8 @@ function formatParticipants(participants) {
 }
 
 /**
- * Renders structured activity details replacing raw JSON.
+ * Renders clean, human-readable activity details for expanded rows.
+ * Zero raw JSON, zero developer-oriented metadata.
  */
 function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
     const tool = log?.tool;
@@ -257,101 +225,15 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
         } catch { return String(ts); }
     };
 
-    if (tool === 'create_task') {
-        const title = actionDisplay.secondaryInfo;
-        const rawDueDate = inputArgs?.dueDate || outputResult?.dueDate || outputResult?.task?.dueDate;
-        let formattedDue = null;
-        if (rawDueDate) {
-            try {
-                formattedDue = formatIndianDate(rawDueDate, 'short', true) || String(rawDueDate);
-            } catch {
-                formattedDue = String(rawDueDate);
-            }
-        }
-        const rawPriority = inputArgs?.priority || outputResult?.priority || outputResult?.task?.priority || 'medium';
-        const priorityBadge = getPriorityBadge(rawPriority);
-        const rawStatus = outputResult?.status || outputResult?.task?.status || (isSuccess ? 'Pending' : 'Failed');
-        const statusBadge = getStatusBadge(rawStatus, isSuccess);
-        const description = inputArgs?.description || outputResult?.description || outputResult?.task?.description;
-
-        return (
-            <div className="bg-white border border-canvas-border rounded-md p-3 space-y-2.5 font-sans">
-                <div className="flex items-center justify-between border-b border-canvas-border pb-2">
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                        <CheckSquare className="w-3.5 h-3.5 text-zinc-600" />
-                        Task Activity Details
-                    </span>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${statusBadge.className}`}>
-                        {statusBadge.label}
-                    </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Task Title</span>
-                        <span className="font-medium text-zinc-900">{title}</span>
-                    </div>
-                    <div>
-                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Priority</span>
-                        <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded border mt-0.5 ${priorityBadge.className}`}>
-                            {priorityBadge.label}
-                        </span>
-                    </div>
-                    {formattedDue && (
-                        <div>
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Due Date</span>
-                            <span className="text-zinc-800">{formattedDue}</span>
-                        </div>
-                    )}
-                    {description && (
-                        <div className="sm:col-span-2">
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Description</span>
-                            <span className="text-zinc-700 text-[11px]">{description}</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    if (tool === 'complete_task') {
-        const title = actionDisplay.secondaryInfo;
-        const rawStatus = outputResult?.status || (isSuccess ? 'Completed' : 'Failed');
-        const statusBadge = getStatusBadge(rawStatus, isSuccess);
-
-        return (
-            <div className="bg-white border border-canvas-border rounded-md p-3 space-y-2.5 font-sans">
-                <div className="flex items-center justify-between border-b border-canvas-border pb-2">
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                        <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
-                        Task Completion Details
-                    </span>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${statusBadge.className}`}>
-                        {statusBadge.label}
-                    </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Completed Task Title</span>
-                        <span className="font-medium text-zinc-900">{title}</span>
-                    </div>
-                    <div>
-                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Completion Status</span>
-                        <span className="text-emerald-700 font-medium">{statusBadge.label}</span>
-                    </div>
-                    <div>
-                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Execution Timestamp</span>
-                        <span className="text-zinc-800">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
+    // 1. Calendar Event Creation
     if (tool === 'create_calendar_event') {
         const title = actionDisplay.secondaryInfo;
         const dateStr =
             outputResult?.date ||
-            (inputArgs?.startTime ? formatIndianDate(inputArgs.startTime, 'long') : null);
+            (inputArgs?.startTime ? formatIndianDate(inputArgs.startTime, 'full') : null);
+        const weekdayStr =
+            outputResult?.weekday ||
+            (inputArgs?.startTime ? formatISTWeekday(inputArgs.startTime) : null);
         const timeStr =
             outputResult?.timeIST ||
             (outputResult?.startIST && outputResult?.endIST
@@ -370,38 +252,40 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
         const meetUrl = extractMeetUrl(log);
 
         return (
-            <div className="bg-white border border-canvas-border rounded-md p-3 space-y-3 font-sans">
-                <div className="flex items-center justify-between border-b border-canvas-border pb-2">
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+            <div className="bg-white border border-canvas-border rounded-md p-3.5 space-y-3 font-sans">
+                <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                    <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-indigo-600" />
                         Calendar Event Details
                     </span>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                        {isSuccess ? 'Scheduled' : 'Failed'}
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                        {isSuccess ? (log.confirmedByUser ? 'Confirmed & Scheduled' : 'Scheduled') : (outputResult?.cancelled ? 'Cancelled' : 'Failed')}
                     </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                         <span className="text-[10px] text-zinc-400 uppercase font-mono block">Event Title</span>
-                        <span className="font-medium text-zinc-900">{title}</span>
+                        <span className="font-medium text-zinc-900 text-sm">{title}</span>
                     </div>
                     {dateStr && (
                         <div>
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Date</span>
-                            <span className="text-zinc-800">{dateStr}</span>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Date & Weekday</span>
+                            <span className="text-zinc-800 font-medium">
+                                {dateStr}{weekdayStr && !dateStr.includes(weekdayStr) ? ` (${weekdayStr})` : ''}
+                            </span>
                         </div>
                     )}
                     {timeStr && (
                         <div>
                             <span className="text-[10px] text-zinc-400 uppercase font-mono block">Time (IST)</span>
-                            <span className="text-zinc-800">{timeStr}</span>
+                            <span className="text-zinc-800 font-medium">{timeStr}</span>
                         </div>
                     )}
                     {locationStr && (
                         <div>
                             <span className="text-[10px] text-zinc-400 uppercase font-mono block">Location</span>
                             <span className="text-zinc-800 flex items-center gap-1">
-                                <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+                                <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                                 {locationStr}
                             </span>
                         </div>
@@ -422,11 +306,21 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
                             </div>
                         </div>
                     )}
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Execution Timestamp</span>
+                        <span className="text-zinc-700 font-mono text-[11px]">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                    </div>
+                    {log.executionTimeMs > 0 && (
+                        <div>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Duration</span>
+                            <span className="text-zinc-700 font-mono text-[11px]">{log.executionTimeMs}ms</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Google Meet Link Section (Only rendered when valid Meet URL exists) */}
                 {meetUrl && (
-                    <div className="pt-2 border-t border-canvas-border flex flex-wrap items-center justify-between gap-2 bg-emerald-50/50 p-2.5 rounded border border-emerald-100">
+                    <div className="pt-2.5 border-t border-canvas-border flex flex-wrap items-center justify-between gap-2 bg-emerald-50/60 p-2.5 rounded-md border border-emerald-100">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-full bg-emerald-100 text-emerald-700">
                                 <Video className="w-4 h-4" />
@@ -480,49 +374,62 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
         );
     }
 
-    if (tool === 'check_calendar_availability') {
-        const windowChecked =
-            inputArgs?.startDate ||
-            inputArgs?.date ||
-            (inputArgs?.timeMin && inputArgs?.timeMax
-                ? `${formatIndianDate(inputArgs.timeMin, 'short', true)} to ${formatIndianDate(inputArgs.timeMax, 'short', true)}`
-                : null);
-        const totalEvents =
-            outputResult?.totalEvents !== undefined
-                ? outputResult.totalEvents
-                : outputResult?.events
-                    ? outputResult.events.length
-                    : null;
-        const msg = outputResult?.message || (outputResult?.hasConflicts ? 'Conflicts detected' : 'Time window available');
+    // 2. Task Creation
+    if (tool === 'create_task') {
+        const title = actionDisplay.secondaryInfo;
+        const rawDueDate = inputArgs?.dueDate || outputResult?.dueDate || outputResult?.task?.dueDate;
+        let formattedDue = null;
+        if (rawDueDate) {
+            try {
+                formattedDue = formatIndianDate(rawDueDate, 'short', true) || String(rawDueDate);
+            } catch {
+                formattedDue = String(rawDueDate);
+            }
+        }
+        const rawPriority = inputArgs?.priority || outputResult?.priority || outputResult?.task?.priority;
+        const priorityBadge = rawPriority ? getPriorityBadge(rawPriority) : null;
+        const rawStatus = outputResult?.status || outputResult?.task?.status || (isSuccess ? 'Pending' : 'Failed');
+        const statusBadge = getStatusBadge(rawStatus, isSuccess);
+        const description = inputArgs?.description || outputResult?.description || outputResult?.task?.description;
 
         return (
-            <div className="bg-white border border-canvas-border rounded-md p-3 space-y-2.5 font-sans">
-                <div className="flex items-center justify-between border-b border-canvas-border pb-2">
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-zinc-600" />
-                        Availability Check Details
+            <div className="bg-white border border-canvas-border rounded-md p-3.5 space-y-3 font-sans">
+                <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                    <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                        <CheckSquare className="w-4 h-4 text-zinc-600" />
+                        Task Activity Details
                     </span>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded border bg-zinc-50 text-zinc-700 border-zinc-200">
-                        {isSuccess ? 'Checked' : 'Failed'}
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${statusBadge.className}`}>
+                        {statusBadge.label}
                     </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    {windowChecked && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Task Title</span>
+                        <span className="font-medium text-zinc-900 text-sm">{title}</span>
+                    </div>
+                    {priorityBadge && (
                         <div>
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Queried Window</span>
-                            <span className="text-zinc-800">{windowChecked}</span>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Priority</span>
+                            <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded border mt-0.5 ${priorityBadge.className}`}>
+                                {priorityBadge.label}
+                            </span>
                         </div>
                     )}
-                    {totalEvents !== null && (
+                    {formattedDue && (
                         <div>
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Events Found</span>
-                            <span className="text-zinc-800 font-mono">{totalEvents}</span>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Due Date</span>
+                            <span className="text-zinc-800 font-medium">{formattedDue}</span>
                         </div>
                     )}
-                    {msg && (
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Created At</span>
+                        <span className="text-zinc-700 font-mono text-[11px]">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                    </div>
+                    {description && (
                         <div className="sm:col-span-2">
-                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Availability Status</span>
-                            <span className="text-zinc-800">{msg}</span>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Description</span>
+                            <span className="text-zinc-700 text-xs">{description}</span>
                         </div>
                     )}
                 </div>
@@ -530,28 +437,154 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
         );
     }
 
-    // Fallback for other tools (e.g. list_tasks)
+    // 3. Task Completion
+    if (tool === 'complete_task') {
+        const title = actionDisplay.secondaryInfo;
+        const rawStatus = outputResult?.status || (isSuccess ? 'Completed' : 'Failed');
+        const statusBadge = getStatusBadge(rawStatus, isSuccess);
+
+        return (
+            <div className="bg-white border border-canvas-border rounded-md p-3.5 space-y-3 font-sans">
+                <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                    <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                        <CheckSquare className="w-4 h-4 text-emerald-600" />
+                        Task Completion Details
+                    </span>
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${statusBadge.className}`}>
+                        {statusBadge.label}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Completed Task Title</span>
+                        <span className="font-medium text-zinc-900 text-sm">{title}</span>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Completion Status</span>
+                        <span className="text-emerald-700 font-medium">{statusBadge.label}</span>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Completed At</span>
+                        <span className="text-zinc-800 font-mono text-[11px]">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                    </div>
+                    {log.executionTimeMs > 0 && (
+                        <div>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Duration</span>
+                            <span className="text-zinc-700 font-mono text-[11px]">{log.executionTimeMs}ms</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // 4. Calendar Availability Checks
+    if (tool === 'check_calendar_availability') {
+        const rawDate = inputArgs?.startDate || inputArgs?.date;
+        let dateChecked = null;
+        if (rawDate) {
+            try {
+                dateChecked = formatIndianDate(rawDate, 'full') || String(rawDate);
+            } catch {
+                dateChecked = String(rawDate);
+            }
+        }
+        const timeWindowChecked =
+            (inputArgs?.timeMin && inputArgs?.timeMax)
+                ? `${formatISTTime(inputArgs.timeMin)} – ${formatISTTime(inputArgs.timeMax)}`
+                : (inputArgs?.startDate ? 'Full day query' : null);
+
+        const hasConflicts = outputResult?.hasConflicts === true || (outputResult?.totalEvents > 0);
+        const conflictsStatus =
+            outputResult?.hasConflicts === true
+                ? 'Conflicts detected'
+                : outputResult?.hasConflicts === false
+                    ? 'No conflicts detected'
+                    : (outputResult?.totalEvents !== undefined
+                        ? (outputResult.totalEvents > 0 ? `${outputResult.totalEvents} meeting(s) found` : 'No conflicts detected')
+                        : null);
+
+        const availabilityResult =
+            outputResult?.message ||
+            (outputResult?.isAvailable !== undefined
+                ? (outputResult.isAvailable ? 'Time window available (No overlaps)' : 'Time window busy')
+                : null);
+
+        return (
+            <div className="bg-white border border-canvas-border rounded-md p-3.5 space-y-3 font-sans">
+                <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                    <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-zinc-600" />
+                        Availability Check Details
+                    </span>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-zinc-50 text-zinc-700 border-zinc-200">
+                        {isSuccess ? 'Checked' : 'Failed'}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {dateChecked && (
+                        <div>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Date Checked</span>
+                            <span className="text-zinc-800 font-medium">{dateChecked}</span>
+                        </div>
+                    )}
+                    {timeWindowChecked && (
+                        <div>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Time Window</span>
+                            <span className="text-zinc-800 font-medium">{timeWindowChecked}</span>
+                        </div>
+                    )}
+                    {conflictsStatus && (
+                        <div>
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Conflict Status</span>
+                            <span className={`font-medium ${hasConflicts ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                {conflictsStatus}
+                            </span>
+                        </div>
+                    )}
+                    {availabilityResult && (
+                        <div className="sm:col-span-2">
+                            <span className="text-[10px] text-zinc-400 uppercase font-mono block">Availability Result</span>
+                            <span className="text-zinc-800">{availabilityResult}</span>
+                        </div>
+                    )}
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Checked At</span>
+                        <span className="text-zinc-700 font-mono text-[11px]">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // 5. Fallback for other tools (e.g. list_tasks)
     return (
-        <div className="bg-white border border-canvas-border rounded-md p-3 space-y-2 font-sans">
-            <div className="flex items-center justify-between border-b border-canvas-border pb-2">
-                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-zinc-500" />
+        <div className="bg-white border border-canvas-border rounded-md p-3.5 space-y-3 font-sans">
+            <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                <span className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-zinc-500" />
                     Activity Details
                 </span>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded border bg-zinc-50 text-zinc-700 border-zinc-200">
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-zinc-50 text-zinc-700 border-zinc-200">
                     {isSuccess ? 'Executed' : 'Failed'}
                 </span>
             </div>
-            <div className="text-xs text-zinc-700">
-                <span className="text-[10px] text-zinc-400 uppercase font-mono block">Action Type</span>
-                <span className="font-medium text-zinc-900">{actionDisplay.primaryLabel}</span>
-            </div>
-            {outputResult?.count !== undefined && (
-                <div className="text-xs text-zinc-700">
-                    <span className="text-[10px] text-zinc-400 uppercase font-mono block">Items Returned</span>
-                    <span className="font-mono text-zinc-900">{outputResult.count}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                    <span className="text-[10px] text-zinc-400 uppercase font-mono block">Action Type</span>
+                    <span className="font-medium text-zinc-900">{actionDisplay.primaryLabel}</span>
                 </div>
-            )}
+                {outputResult?.count !== undefined && (
+                    <div>
+                        <span className="text-[10px] text-zinc-400 uppercase font-mono block">Items Returned</span>
+                        <span className="font-medium text-zinc-900">{outputResult.count}</span>
+                    </div>
+                )}
+                <div>
+                    <span className="text-[10px] text-zinc-400 uppercase font-mono block">Executed At</span>
+                    <span className="text-zinc-700 font-mono text-[11px]">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                </div>
+            </div>
         </div>
     );
 }
@@ -563,19 +596,17 @@ export function AuditLogPanel() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // Default configuration
+    // Default configuration:
     // - Action category: All actions ('all')
     // - Execution status: All statuses ('all')
     // - Specific action: All ('all')
     // - Initially display latest 10 records
     // - All audit entries collapsed by default
-    // - Developer details collapsed by default
     const [categoryFilter, setCategoryFilter] = useState('all'); // 'all' | 'calendar' | 'tasks'
     const [statusFilter, setStatusFilter] = useState('all');     // 'all' | 'successful' | 'failed' | 'pending'
     const [actionFilter, setActionFilter] = useState('all');     // 'all' | 'create_task' | 'complete_task' | 'create_calendar_event' | 'check_calendar_availability'
     const [displayLimit, setDisplayLimit] = useState(10);
     const [expandedId, setExpandedId] = useState(null);
-    const [expandedDevIds, setExpandedDevIds] = useState(new Set());
     const [copiedMeetId, setCopiedMeetId] = useState(null);
 
     const fetchLogsAndStats = async () => {
@@ -638,14 +669,6 @@ export function AuditLogPanel() {
             if (isNaN(date.getTime())) return '';
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         } catch { return ''; }
-    };
-
-    const formatFullTimestamp = (ts) => {
-        if (!ts) return '';
-        try {
-            const formatted = formatIndianDate(ts, 'short', true);
-            return formatted || String(ts);
-        } catch { return String(ts); }
     };
 
     // Filter matching logic operating entirely on frontend data
@@ -911,15 +934,11 @@ export function AuditLogPanel() {
                                 {visibleLogs.map((log, index) => {
                                     const logKey = log._id || (String(log.conversationId || '') + '_' + String(log.timestamp || index));
                                     const isExpanded = expandedId === logKey;
-                                    const isDevExpanded = expandedDevIds.has(logKey);
                                     const outputResult = log.result !== undefined ? log.result : log.outputResult;
                                     const isSuccess = log.success !== false && log.status !== 'error' && log.status !== 'failed' && !outputResult?.cancelled;
                                     const isPending = log.status === 'pending' || log.status === 'confirmation_required' || Boolean(log.pendingConfirmation);
                                     const timeStr = formatTimestamp(log.timestamp || log.createdAt);
-                                    const inputArgs = log.args || log.inputArgs;
                                     const actionDisplay = getActionDisplay(log);
-                                    const devEntityId = extractEntityId(log);
-                                    const errorDetails = extractErrorDetails(log);
 
                                     return (
                                         <React.Fragment key={logKey}>
@@ -967,111 +986,14 @@ export function AuditLogPanel() {
                                             </tr>
                                             {isExpanded && (
                                                 <tr className="bg-canvas-subtle">
-                                                    <td colSpan={4} className="p-3 border-t border-canvas-border space-y-3 font-mono text-[10px]">
-                                                        {/* Structured Human-Readable Activity Details */}
+                                                    <td colSpan={4} className="p-3 border-t border-canvas-border">
+                                                        {/* Clean, Human-Readable Activity Details */}
                                                         <ActivityDetails
                                                             log={log}
                                                             logKey={logKey}
                                                             copiedMeetId={copiedMeetId}
                                                             onCopyMeet={handleCopyMeet}
                                                         />
-
-                                                        {/* Expandable Developer Details (Collapsed by default) */}
-                                                        <div className="border border-canvas-border rounded-md bg-zinc-50 overflow-hidden">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setExpandedDevIds((prev) => {
-                                                                        const next = new Set(prev);
-                                                                        if (next.has(logKey)) next.delete(logKey);
-                                                                        else next.add(logKey);
-                                                                        return next;
-                                                                    });
-                                                                }}
-                                                                className="w-full flex items-center justify-between px-3 py-2 text-xs font-mono text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
-                                                            >
-                                                                <span className="flex items-center gap-1.5 font-semibold text-[11px]">
-                                                                    <Code className="w-3.5 h-3.5 text-zinc-500" />
-                                                                    Developer Details
-                                                                </span>
-                                                                {isDevExpanded ? (
-                                                                    <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
-                                                                ) : (
-                                                                    <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                                                                )}
-                                                            </button>
-
-                                                            {isDevExpanded && (
-                                                                <div className="p-3 border-t border-canvas-border space-y-3 bg-white text-xs font-mono">
-                                                                    {/* Technical Metadata Grid */}
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2.5 border-b border-canvas-border text-zinc-600 font-sans text-[11px]">
-                                                                        <div>
-                                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Original Tool</span>
-                                                                            <span className="font-mono text-zinc-900 font-medium">{log.tool || 'N/A'}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Timestamp</span>
-                                                                            <span className="text-zinc-800">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Execution Status</span>
-                                                                            <span className="font-medium">
-                                                                                {isPending ? (
-                                                                                    <span className="text-amber-700">Pending Execution</span>
-                                                                                ) : isSuccess ? (
-                                                                                    <span className="text-emerald-700">
-                                                                                        {log.confirmedByUser ? 'Confirmed by User' : 'Executed Successfully'}
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span className="text-rose-700">
-                                                                                        {outputResult?.cancelled ? 'Cancelled / Rejected' : 'Execution Failed'}
-                                                                                    </span>
-                                                                                )}
-                                                                            </span>
-                                                                        </div>
-                                                                        {devEntityId && (
-                                                                            <div>
-                                                                                <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Task / Event ID</span>
-                                                                                <span className="font-mono text-zinc-800 break-all">{devEntityId}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {log.executionTimeMs > 0 && (
-                                                                            <div>
-                                                                                <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Execution Duration</span>
-                                                                                <span className="font-mono text-zinc-800">{log.executionTimeMs}ms</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {errorDetails && (
-                                                                            <div className="sm:col-span-2 text-rose-700 bg-rose-50 p-2 rounded border border-rose-200">
-                                                                                <span className="block text-[10px] uppercase font-mono tracking-wider text-rose-500 font-semibold">Error Details</span>
-                                                                                <span className="font-mono text-[11px] break-all">{errorDetails}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Input Arguments JSON */}
-                                                                    {inputArgs && Object.keys(inputArgs).length > 0 && (
-                                                                        <div>
-                                                                            <span className="text-zinc-500 block mb-1 font-sans text-[11px] font-medium">Input Arguments:</span>
-                                                                            <pre className="p-2.5 rounded bg-zinc-900 text-emerald-400 overflow-x-auto text-[11px] font-mono leading-relaxed border border-zinc-800">
-                                                                                {JSON.stringify(inputArgs, null, 2)}
-                                                                            </pre>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* Output Result JSON */}
-                                                                    {outputResult !== undefined && (
-                                                                        <div>
-                                                                            <span className="text-zinc-500 block mb-1 font-sans text-[11px] font-medium">Output Result:</span>
-                                                                            <pre className="p-2.5 rounded bg-zinc-900 text-sky-300 overflow-x-auto text-[11px] font-mono leading-relaxed border border-zinc-800">
-                                                                                {typeof outputResult === 'object' ? JSON.stringify(outputResult, null, 2) : String(outputResult)}
-                                                                            </pre>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
                                                     </td>
                                                 </tr>
                                             )}
