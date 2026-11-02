@@ -419,6 +419,36 @@ This document records all significant technical and design decisions made for th
 
 ---
 
+## ADR-C024: Action Audit Log UI Enhancement — Multi-Filter Controls, Structured Activity Details & Developer Inspection Drawer
+
+- **Status:** Accepted
+- **Date:** 2026-11-02
+- **Context:**
+  The Action Audit Log previously displayed raw JSON dumps when users expanded an audit entry. Normal users found it difficult to quickly scan task titles, due dates, priorities, or calendar details, while developers still required full JSON payloads, execution durations, and tool arguments for debugging. Furthermore, filtering through high volumes of audit records was unsupported.
+
+- **Decision:**
+  1. **Compact Multi-Filter Control Bar:**
+     - Added three composable filter controls: Category (`All Actions`, `Calendar`, `Tasks`), Execution Status (`All Statuses`, `Successful`, `Failed`, `Pending`), and Specific Action (`All Actions`, `Task Created`, `Task Completed`, `Calendar Event Created`, `Calendar Availability Checked`).
+     - Implemented immediate client-side filtering with a live matching record counter, empty-state reset button, and "Clear Filters" action.
+  2. **10-Record Default Pagination:**
+     - Initially displays the latest 10 records with a progressive "Show 10 more" / "Show all" pagination control to optimize DOM performance.
+  3. **Structured Human-Readable Activity Details:**
+     - Replaced raw JSON expansion with domain-specific cards:
+       - `create_task`: Task title, priority badge, due date formatted in IST, status badge, and optional description notes.
+       - `complete_task`: Completed task title, completion status, and execution timestamp.
+       - `create_calendar_event`: Event title, date, start/end time in IST, location, attendee chips, and verified Google Meet link.
+       - `check_calendar_availability`: Queried window, event count, and conflict status.
+       - Safe fallback to `"Task details unavailable"` when titles are missing.
+  4. **Collapsed-by-Default Developer Details Drawer:**
+     - Embedded a nested accordion ("Developer Details") containing original tool names, Task/Event IDs, execution durations, error callouts, and formatted JSON viewer blocks (`<pre>`).
+  5. **Secure Google Meet Link Extraction & One-Click Copy:**
+     - Extracted validated URLs matching `https://meet.google.com/`, rendering a prominent external launch button and a 2-second visual feedback "Copy Link" control.
+
+- **Why Taken:**
+  Delivers a modern, consumer-grade experience for business users while preserving 100% of the raw diagnostic data required by software engineers.
+
+---
+
 ## Key Frontend Engineering Highlights & Resume Impact (Ready-to-Use Resume Points)
 
 1. **Real-Time Agent UI & Execution Stream Rendering:**
@@ -429,3 +459,6 @@ This document records all significant technical and design decisions made for th
 
 3. **Timezone-Resilient Internationalized Date Presentation:**
    > *Implemented a comprehensive date parsing and formatting utility suite in React supporting Indian locale standards (`DD-MM-YYYY`, text formats, relative dates), enforcing `Asia/Kolkata` timezone parity across all modals, audit tables, and calendar event detail cards to eliminate cross-timezone drift.*
+
+4. **Multi-Dimensional Audit Trail & Developer Inspection UX:**
+   > *Designed an enterprise-grade Action Audit Log interface in React 19 featuring composable multi-criteria filtering (category, execution state, tool type), domain-specific activity cards, one-click Google Meet actions, and a collapsed-by-default developer telemetry drawer with formatted JSON inspectors.*
