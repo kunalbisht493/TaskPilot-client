@@ -760,7 +760,7 @@ export function AuditLogPanel() {
         setCategoryFilter(newCat);
         setDisplayLimit(10);
         // If the new category conflicts with the currently selected action, reset action to 'all'
-        if (newCat === 'tasks' && (actionFilter === 'check_calendar_availability' || actionFilter === 'create_calendar_event')) {
+        if (newCat === 'tasks' && actionFilter === 'create_calendar_event') {
             setActionFilter('all');
         } else if (newCat === 'calendar' && (actionFilter === 'create_task' || actionFilter === 'complete_task')) {
             setActionFilter('all');
@@ -771,7 +771,7 @@ export function AuditLogPanel() {
         setActionFilter(newAction);
         setDisplayLimit(10);
         // Auto-align category filter if a specific action belongs to a category
-        if (newAction === 'check_calendar_availability' || newAction === 'create_calendar_event') {
+        if (newAction === 'create_calendar_event') {
             if (categoryFilter === 'tasks') {
                 setCategoryFilter('calendar');
             }
@@ -868,7 +868,6 @@ export function AuditLogPanel() {
                             <option value="create_task">Task Created</option>
                             <option value="complete_task">Task Completed</option>
                             <option value="create_calendar_event">Calendar Event Created</option>
-                            <option value="check_calendar_availability">Calendar Availability Checked</option>
                         </select>
                     </div>
 
