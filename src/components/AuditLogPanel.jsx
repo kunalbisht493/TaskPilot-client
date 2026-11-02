@@ -1,9 +1,79 @@
 import { formatIndianDate } from '../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp, Clock, ShieldCheck } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { auditApi } from '../api/auditApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+
+/**
+ * Extracts the user-friendly action label and secondary task/event title
+ * for supported tools, falling back to safe defaults when data is unavailable.
+ */
+function getActionDisplay(log) {
+    const tool = log?.tool;
+    const inputArgs = log?.args || log?.inputArgs || {};
+    const outputResult = log?.result !== undefined ? log?.result : log?.outputResult;
+
+    if (tool === 'create_task') {
+        const rawTitle =
+            (typeof inputArgs?.title === 'string' && inputArgs.title.trim())
+                ? inputArgs.title.trim()
+                : (typeof outputResult?.title === 'string' && outputResult.title.trim())
+                    ? outputResult.title.trim()
+                    : (typeof outputResult?.task?.title === 'string' && outputResult.task.title.trim())
+                        ? outputResult.task.title.trim()
+                        : '';
+
+        return {
+            primaryLabel: 'Task created',
+            secondaryInfo: rawTitle || 'Task details unavailable',
+            hasSecondary: true,
+        };
+    }
+
+    if (tool === 'create_calendar_event') {
+        const rawTitle =
+            (typeof outputResult?.summary === 'string' && outputResult.summary.trim())
+                ? outputResult.summary.trim()
+                : (typeof outputResult?.title === 'string' && outputResult.title.trim())
+                    ? outputResult.title.trim()
+                    : (typeof inputArgs?.summary === 'string' && inputArgs.summary.trim())
+                        ? inputArgs.summary.trim()
+                        : (typeof inputArgs?.title === 'string' && inputArgs.title.trim())
+                            ? inputArgs.title.trim()
+                            : '';
+
+        return {
+            primaryLabel: 'Calendar event created',
+            secondaryInfo: rawTitle || 'Task details unavailable',
+            hasSecondary: true,
+        };
+    }
+
+    if (tool === 'complete_task') {
+        const rawTitle =
+            (typeof outputResult?.title === 'string' && outputResult.title.trim())
+                ? outputResult.title.trim()
+                : (typeof outputResult?.task?.title === 'string' && outputResult.task.title.trim())
+                    ? outputResult.task.title.trim()
+                    : (typeof inputArgs?.title === 'string' && inputArgs.title.trim())
+                        ? inputArgs.title.trim()
+                        : '';
+
+        return {
+            primaryLabel: 'Task completed',
+            secondaryInfo: rawTitle || 'Task details unavailable',
+            hasSecondary: true,
+        };
+    }
+
+    // Default fallback for other tools (e.g. check_calendar_availability, list_tasks)
+    return {
+        primaryLabel: tool ? tool.replace(/_/g, ' ') : 'Action recorded',
+        secondaryInfo: null,
+        hasSecondary: false,
+    };
+}
 
 export function AuditLogPanel() {
     const { isAuthenticated } = useAuth();
@@ -75,6 +145,14 @@ export function AuditLogPanel() {
         } catch { return ''; }
     };
 
+    const formatFullTimestamp = (ts) => {
+        if (!ts) return '';
+        try {
+            const formatted = formatIndianDate(ts, 'short', true);
+            return formatted || String(ts);
+        } catch { return String(ts); }
+    };
+
     return (
         <div className="flex flex-col h-full bg-canvas-subtle">
             {/* Top metric bar */}
@@ -113,7 +191,7 @@ export function AuditLogPanel() {
                     <table className="w-full text-left text-xs text-zinc-700">
                         <thead className="bg-canvas-subtle text-zinc-500 border-b border-canvas-border sticky top-0 font-mono text-[10px] uppercase tracking-wider">
                             <tr>
-                                <th className="py-2 px-3">TOOL</th>
+                                <th className="py-2 px-3">ACTION</th>
                                 <th className="py-2 px-3">STATE</th>
                                 <th className="py-2 px-3">TIME</th>
                                 <th className="py-2 px-2 text-right"></th>
@@ -127,6 +205,7 @@ export function AuditLogPanel() {
                                 const timeStr = formatTimestamp(log.timestamp || log.createdAt);
                                 const inputArgs = log.args || log.inputArgs;
                                 const outputResult = log.result !== undefined ? log.result : log.outputResult;
+                                const actionDisplay = getActionDisplay(log);
 
                                 return (
                                     <React.Fragment key={logKey}>
@@ -134,22 +213,34 @@ export function AuditLogPanel() {
                                             onClick={() => setExpandedId((prev) => prev === logKey ? null : logKey)}
                                             className="hover:bg-canvas-subtle cursor-pointer transition-colors"
                                         >
-                                            <td className="py-2 px-3 text-zinc-900 font-medium">{log.tool}</td>
-                                            <td className="py-2 px-3 text-[11px]">
+                                            <td className="py-2.5 px-3">
+                                                <div className="font-sans text-xs text-zinc-900 font-medium leading-snug">
+                                                    {actionDisplay.primaryLabel}
+                                                </div>
+                                                {actionDisplay.hasSecondary && (
+                                                    <div
+                                                        className="font-sans text-[11px] text-zinc-500 font-normal leading-snug truncate max-w-[200px] sm:max-w-xs mt-0.5"
+                                                        title={actionDisplay.secondaryInfo}
+                                                    >
+                                                        {actionDisplay.secondaryInfo}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="py-2.5 px-3 text-[11px] whitespace-nowrap">
                                                 {isSuccess ? (
-                                                    <span className="inline-flex items-center gap-1.5 text-zinc-700 font-medium">
+                                                    <span className="inline-flex items-center gap-1.5 text-zinc-700 font-medium font-sans">
                                                         <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                                         {log.confirmedByUser ? 'Confirmed' : 'Executed'}
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1.5 text-rose-600 font-medium">
+                                                    <span className="inline-flex items-center gap-1.5 text-rose-600 font-medium font-sans">
                                                         <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                                                         {log.result?.cancelled ? 'Rejected' : 'Failed'}
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="py-2 px-3 text-zinc-400 text-[11px]">{timeStr}</td>
-                                            <td className="py-2 px-2 text-right text-zinc-400">
+                                            <td className="py-2.5 px-3 text-zinc-400 text-[11px] whitespace-nowrap">{timeStr}</td>
+                                            <td className="py-2.5 px-2 text-right text-zinc-400">
                                                 {isExpanded
                                                     ? <ChevronUp className="w-3.5 h-3.5 inline" />
                                                     : <ChevronDown className="w-3.5 h-3.5 inline" />}
@@ -157,17 +248,43 @@ export function AuditLogPanel() {
                                         </tr>
                                         {isExpanded && (
                                             <tr className="bg-canvas-subtle">
-                                                <td colSpan={4} className="p-3 border-t border-canvas-border space-y-2 font-mono text-[10px]">
-                                                    {log.executionTimeMs > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-zinc-500 text-[10px]">
-                                                            <Clock className="w-3 h-3" />
-                                                            <span>Execution time: <strong>{log.executionTimeMs}ms</strong></span>
+                                                <td colSpan={4} className="p-3 border-t border-canvas-border space-y-2.5 font-mono text-[10px]">
+                                                    {/* Key metadata grid */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b border-canvas-border text-zinc-600 font-sans text-[11px]">
+                                                        <div>
+                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Original Tool</span>
+                                                            <span className="font-mono text-zinc-900 font-medium">{log.tool || 'N/A'}</span>
                                                         </div>
-                                                    )}
-                                                    {inputArgs && (
+                                                        <div>
+                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Timestamp</span>
+                                                            <span className="text-zinc-800">{formatFullTimestamp(log.timestamp || log.createdAt)}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Execution Status</span>
+                                                            <span className="font-medium">
+                                                                {isSuccess ? (
+                                                                    <span className="text-emerald-700">
+                                                                        {log.confirmedByUser ? 'Confirmed by User' : 'Executed Successfully'}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-rose-700">
+                                                                        {log.result?.cancelled ? 'Cancelled / Rejected' : 'Execution Failed'}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        {log.executionTimeMs > 0 && (
+                                                            <div>
+                                                                <span className="text-zinc-400 block text-[10px] uppercase font-mono tracking-wider">Execution Time</span>
+                                                                <span className="font-mono text-zinc-800">{log.executionTimeMs}ms</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {inputArgs && Object.keys(inputArgs).length > 0 && (
                                                         <div>
                                                             <span className="text-zinc-500 block mb-1 font-sans text-[11px] font-medium">Input Arguments:</span>
-                                                            <pre className="p-2 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border text-[11px]">
+                                                            <pre className="p-2 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border text-[11px] font-mono">
                                                                 {JSON.stringify(inputArgs, null, 2)}
                                                             </pre>
                                                         </div>
@@ -175,7 +292,7 @@ export function AuditLogPanel() {
                                                     {outputResult !== undefined && (
                                                         <div>
                                                             <span className="text-zinc-500 block mb-1 font-sans text-[11px] font-medium">Output Result:</span>
-                                                            <pre className="p-2 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border text-[11px]">
+                                                            <pre className="p-2 rounded bg-white text-zinc-800 overflow-x-auto border border-canvas-border text-[11px] font-mono">
                                                                 {typeof outputResult === 'object' ? JSON.stringify(outputResult, null, 2) : String(outputResult)}
                                                             </pre>
                                                         </div>
