@@ -364,3 +364,68 @@ This document records all significant technical and design decisions made for th
 
 - **Why Taken:**
   Guarantees consistent, unambiguous Day-first Indian date presentation across all renders, refreshes, and modals while accepting both full and short month input forms.
+
+---
+
+## ADR-C021: Human-Centric Activity Feed Abstraction & Structured Meeting Cards
+
+- **Status:** Accepted
+- **Date:** 2026-11-01
+- **Context:**
+  The frontend previously displayed raw technical execution metrics—including cycle counters ("Cycle 1", "Cycle 2"), raw JSON tool arguments, observation dumps, and internal reasoning tags. This produced significant visual noise for normal users. The UI required clean, consumer-ready activity summaries and formatted meeting cards without modifying backend APIs or losing action audit log data.
+
+- **Decision:**
+  1. **Minimal Activity Summary:** Replaced cycle headers with compact status summaries (e.g. `3 actions completed`, `Checking calendar availability ✓`).
+  2. **Collapsible Technical Steps:** Enclosed technical step inspection in a collapsible "View steps" drawer.
+  3. **Structured Meeting Cards (`MeetingCard`):** Implemented visual cards in `ReasoningFeed.jsx` parsing key-value pairs (Title, Date, Time, Location, Participants, Meeting Link) with dedicated Lucide icons (`Calendar`, `Clock`, `MapPin`, `Users`, `ExternalLink`).
+  4. **Markdown Artifact Cleanup:** Eliminated raw asterisks and markdown delimiters from rendered inline text.
+
+- **Why Taken:**
+  Transforms the interface into a professional, consumer-grade AI product while preserving full technical details in the Action Audit Log for power users.
+
+---
+
+## ADR-C022: Persistent Session and Conversation ID Decoupling (`localStorage` & Socket Reconnection)
+
+- **Status:** Accepted
+- **Date:** 2026-11-01
+- **Context:**
+  Browser refreshes caused the application to generate new Session and Conversation IDs, wiping active chat state and triggering duplicate socket room joining. Furthermore, clicking the Reset button unintentionally cleared the user's Session ID.
+
+- **Decision:**
+  1. **Decoupled Identity Lifecycle:**
+     - `sessionId`: Persisted in `localStorage` across page refreshes and resets.
+     - `conversationId`: Restored from `localStorage` on page refresh, and re-generated only on explicit Reset.
+  2. **Socket Handshake Auth Synchronization:** Updated `SocketContext.jsx` and `useAgentSession.js` to pass `conversationId` and `sessionId` directly in Socket.io connection credentials, preventing room fragmentation and duplicate socket instances.
+
+- **Why Taken:**
+  Provides robust session continuity across browser reloads while preventing socket connection leaks and orphaned conversation rooms.
+
+---
+
+## ADR-C023: Timezone-Safe Date and Weekday Synchronization with Backend (`Asia/Kolkata`)
+
+- **Status:** Accepted
+- **Date:** 2026-11-02
+- **Context:**
+  Client-side date formatting previously relied on standard browser `toLocaleDateString()`, causing dates to shift when users accessed the app from different browser timezones or during edge hours near midnight. Additionally, weekday calculations required dynamic synchronization with the backend's `Asia/Kolkata` standard.
+
+- **Decision:**
+  1. **Enforced Asia/Kolkata Standard:** Updated `dateUtils.js` with `createISTDate`, `getISTDateParts`, `formatISTWeekday`, and explicit `{ timeZone: 'Asia/Kolkata' }` options.
+  2. **Full-Format Weekday Parity:** Formatted `'full'` dates to include the long weekday name (e.g. `"Wednesday, 4 November 2026"`), guaranteeing complete alignment between frontend displays and backend calendar payloads.
+
+- **Why Taken:**
+  Ensures zero timezone drift between client browser rendering and backend calendar operations.
+
+---
+
+## Key Frontend Engineering Highlights & Resume Impact (Ready-to-Use Resume Points)
+
+1. **Real-Time Agent UI & Execution Stream Rendering:**
+   > *Built a high-performance React 19 single-page application integrating Tailwind CSS v3 and Socket.io, designing a live activity stream that abstracts complex multi-cycle ReAct executions into human-readable task summaries and structured meeting cards with sub-100ms UI responsiveness.*
+
+2. **Resilient Session Persistence & Connection Pool Architecture:**
+   > *Architected an identity management and connection pooling system decoupling long-lived Session IDs from dialogue Conversation IDs using `localStorage` and Socket.io auth payloads, eliminating duplicate connection storms under React StrictMode and maintaining conversation state across page refreshes.*
+
+3. **Timezone-Resilient Internationalized Date Presentation:**
+   > *Implemented a comprehensive date parsing and formatting utility suite in React supporting Indian locale standards (`DD-MM-YYYY`, text formats, relative dates), enforcing `Asia/Kolkata` timezone parity across all modals, audit tables, and calendar event detail cards to eliminate cross-timezone drift.*
