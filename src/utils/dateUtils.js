@@ -212,7 +212,7 @@ export function parseIndianDate(input, defaultYear = new Date().getFullYear(), d
  * @param {string} [timeZone='Asia/Kolkata'] 
  * @returns {{ minDate: Date, maxDate: Date, isoTimeMin: string, isoTimeMax: string }}
  */
-export function resolveCalendarWindow(timeMin, timeMax, timeZone = 'Asia/Kolkata') {
+export function resolveCalendarWindow(timeMin, timeMax, _timeZone = 'Asia/Kolkata') {
   if (!timeMin) {
     throw new Error('Start date/time (timeMin) is required to resolve calendar window.');
   }

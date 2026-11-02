@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Clock, Database } from 'lucide-react';
+import { X, Database } from 'lucide-react';
 
 export function SystemInfoModal({ isOpen, onClose }) {
   if (!isOpen) return null;

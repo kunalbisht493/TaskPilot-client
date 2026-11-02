@@ -1,6 +1,6 @@
-import { formatIndianDate, parseIndianDate } from '../utils/dateUtils';
+import { parseIndianDate } from '../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, Square, Trash2, RefreshCw, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { CheckSquare, Square, Trash2, RefreshCw, Calendar, Clock } from 'lucide-react';
 import { taskApi } from '../api/taskApi';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -195,12 +195,12 @@ export function TaskPanel() {
             <p className="text-[10px] text-zinc-400 mt-0.5">Completed tasks are automatically cleaned up after 30 days via MongoDB TTL.</p>
           </div>
         ) : (
-          filteredTasks.map((task) => {
+          filteredTasks.map((task, index) => {
             const taskId = task.id || task._id;
             const isCompleted = task.status === 'completed';
             return (
               <div
-                key={taskId || Math.random()}
+                key={taskId || index}
                 className="flex items-center justify-between py-2.5 px-3 hover:bg-canvas-subtle/80 transition-colors group"
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">

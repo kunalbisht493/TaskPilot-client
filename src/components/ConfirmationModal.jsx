@@ -41,7 +41,7 @@ export function ConfirmationModal({
     try {
       const formatted = formatIndianDate(val, 'short', true);
       return formatted || String(val);
-    } catch (_) {
+    } catch {
       return String(val);
     }
   };

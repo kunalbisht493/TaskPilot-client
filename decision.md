@@ -449,6 +449,42 @@ This document records all significant technical and design decisions made for th
 
 ---
 
+## ADR-C025: Ground-Truth Scheduling Conflict Evaluation & False-Positive Elimination
+
+- **Status:** Accepted
+- **Date:** 2026-11-02
+- **Context:**
+  The assistant response UI previously determined scheduling conflict badges through naive substring regex matching (`/conflict|overlap|already scheduled/i`). When the assistant answered that *"no events are scheduled during the requested time window and there are no conflicts, the time slot is completely free"*, the regex triggered on the substring `"conflict"` inside `"no conflicts"`, incorrectly rendering an amber "Scheduling Conflict" badge.
+
+- **Decision:**
+  1. **Ground-Truth Tool Observation Precedence:** Updated `ReasoningFeed.jsx` (`getSchedulingConflictStatus`) to inspect the actual execution observation payload from the active conversation's `steps`. When `check_calendar_availability` returns `{ hasConflicts: false, isAvailable: true }` or `create_calendar_event` returns `{ success: true }`, conflict status is strictly `false`.
+  2. **Explicit Negative/Clear Indicators:** Added pattern checks for explicit free-slot phrasing (`no conflicts`, `no overlap`, `no events are scheduled`, `slot is completely free`, `schedule is clear`) that immediately bypass conflict assertion.
+  3. **Stale Multi-Step State Isolation:** Evaluates only the latest calendar observation of the active conversation, preventing historical conflicts from earlier dialogue turns from polluting the current view.
+
+- **Why Taken:**
+  Guarantees 100% semantic alignment between the visual badge indicators and the actual backend availability observation.
+
+---
+
+## ADR-C026: Action Audit Log Expanded UI Simplification & Action Filter Refinement
+
+- **Status:** Accepted
+- **Date:** 2026-11-02
+- **Context:**
+  After releasing the initial audit log filter in ADR-C024, user feedback requested:
+  1. Completely removing visible Developer Details (raw JSON arguments and responses) from the expanded row in favor of a clean, human-readable card layout.
+  2. Refining the Action filter to focus exclusively on auditable write actions (`create_task`, `complete_task`, `create_calendar_event`) by removing read-only availability queries from the Action dropdown.
+
+- **Decision:**
+  1. **Removed Developer Details Accordion:** Completely excised `<pre>` JSON blocks and technical error traces from the expanded row, rendering only domain-specific Activity Details (event title, date & weekday, start/end IST times, location, participant chips, Google Meet link, execution timestamp and latency).
+  2. **Refined Action Filter Options:** Kept `All Actions`, `Task Created`, `Task Completed`, and `Calendar Event Created`, removing ephemeral read actions from the dropdown.
+  3. **Bidirectional Category-Action Synchronization:** Selecting `Calendar Event Created` automatically aligns Category to `Calendar`, and selecting `Task` actions auto-aligns Category to `Tasks`, preventing impossible filter deadlocks.
+
+- **Why Taken:**
+  Transforms the expanded audit trail into a clean, consumer-grade activity ledger while maintaining strict filtering harmony.
+
+---
+
 ## Key Frontend Engineering Highlights & Resume Impact (Ready-to-Use Resume Points)
 
 1. **Real-Time Agent UI & Execution Stream Rendering:**
@@ -462,3 +498,6 @@ This document records all significant technical and design decisions made for th
 
 4. **Multi-Dimensional Audit Trail & Developer Inspection UX:**
    > *Designed an enterprise-grade Action Audit Log interface in React 19 featuring composable multi-criteria filtering (category, execution state, tool type), domain-specific activity cards, one-click Google Meet actions, and a collapsed-by-default developer telemetry drawer with formatted JSON inspectors.*
+
+5. **Ground-Truth State Verification & False-Positive Elimination:**
+   > *Engineered a multi-tier state verification engine in React 19 correlating LLM conversational output with real-time ReAct tool execution observation payloads, eliminating false-positive scheduling conflict badges by cross-referencing availability API ground truth and negative-assertion linguistic patterns.*
