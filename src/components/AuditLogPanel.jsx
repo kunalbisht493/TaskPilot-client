@@ -93,10 +93,19 @@ function getActionDisplay(log) {
     }
 
     if (tool === 'check_calendar_availability') {
+        const rawDate = inputArgs?.startDate || inputArgs?.date || inputArgs?.timeMin;
+        let secondary = '';
+        if (rawDate) {
+            try {
+                secondary = formatIndianDate(rawDate, 'full') || String(rawDate);
+            } catch {
+                secondary = String(rawDate);
+            }
+        }
         return {
             primaryLabel: 'Calendar availability checked',
-            secondaryInfo: null,
-            hasSecondary: false,
+            secondaryInfo: secondary || null,
+            hasSecondary: Boolean(secondary),
             actionKey: 'check_calendar_availability',
             category: 'calendar',
         };
@@ -642,12 +651,21 @@ export function AuditLogPanel() {
     // Filter matching logic operating entirely on frontend data
     const isCategoryMatch = (log, cat) => {
         if (cat === 'all') return true;
-        const tool = log?.tool || '';
+        const tool = (log?.tool || log?.action || log?.name || '').trim().toLowerCase();
         if (cat === 'calendar') {
-            return tool === 'create_calendar_event' || tool === 'check_calendar_availability' || tool.includes('calendar');
+            return (
+                tool === 'create_calendar_event' ||
+                tool === 'check_calendar_availability' ||
+                tool.includes('calendar')
+            );
         }
         if (cat === 'tasks') {
-            return tool === 'create_task' || tool === 'complete_task' || tool === 'list_tasks' || tool.includes('task');
+            return (
+                tool === 'create_task' ||
+                tool === 'complete_task' ||
+                tool === 'list_tasks' ||
+                tool.includes('task')
+            );
         }
         return true;
     };
@@ -667,7 +685,30 @@ export function AuditLogPanel() {
 
     const isActionMatch = (log, action) => {
         if (action === 'all') return true;
-        return log?.tool === action;
+        const tool = (log?.tool || log?.action || log?.name || '').trim().toLowerCase();
+
+        if (action === 'check_calendar_availability') {
+            return (
+                tool === 'check_calendar_availability' ||
+                tool === 'check_availability' ||
+                tool === 'calendar_availability' ||
+                tool === 'checkcalendaravailability'
+            );
+        }
+        if (action === 'create_calendar_event') {
+            return (
+                tool === 'create_calendar_event' ||
+                tool === 'calendar_event' ||
+                tool === 'createcalendarevent'
+            );
+        }
+        if (action === 'create_task') {
+            return tool === 'create_task' || tool === 'createtask';
+        }
+        if (action === 'complete_task') {
+            return tool === 'complete_task' || tool === 'completetask';
+        }
+        return tool === action.toLowerCase();
     };
 
     const filteredLogs = useMemo(() => {
@@ -690,6 +731,32 @@ export function AuditLogPanel() {
         setStatusFilter('all');
         setActionFilter('all');
         setDisplayLimit(10);
+    };
+
+    const handleCategoryChange = (newCat) => {
+        setCategoryFilter(newCat);
+        setDisplayLimit(10);
+        // If the new category conflicts with the currently selected action, reset action to 'all'
+        if (newCat === 'tasks' && (actionFilter === 'check_calendar_availability' || actionFilter === 'create_calendar_event')) {
+            setActionFilter('all');
+        } else if (newCat === 'calendar' && (actionFilter === 'create_task' || actionFilter === 'complete_task')) {
+            setActionFilter('all');
+        }
+    };
+
+    const handleActionChange = (newAction) => {
+        setActionFilter(newAction);
+        setDisplayLimit(10);
+        // Auto-align category filter if a specific action belongs to a category
+        if (newAction === 'check_calendar_availability' || newAction === 'create_calendar_event') {
+            if (categoryFilter === 'tasks') {
+                setCategoryFilter('calendar');
+            }
+        } else if (newAction === 'create_task' || newAction === 'complete_task') {
+            if (categoryFilter === 'calendar') {
+                setCategoryFilter('tasks');
+            }
+        }
     };
 
     const handleCopyMeet = (url, logKey) => {
@@ -740,7 +807,7 @@ export function AuditLogPanel() {
                         <select
                             id="audit-filter-category"
                             value={categoryFilter}
-                            onChange={(e) => { setCategoryFilter(e.target.value); setDisplayLimit(10); }}
+                            onChange={(e) => handleCategoryChange(e.target.value)}
                             className="text-xs bg-zinc-50 border border-canvas-border rounded px-2 py-1 text-zinc-700 hover:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
                             <option value="all">All Actions</option>
@@ -771,7 +838,7 @@ export function AuditLogPanel() {
                         <select
                             id="audit-filter-action"
                             value={actionFilter}
-                            onChange={(e) => { setActionFilter(e.target.value); setDisplayLimit(10); }}
+                            onChange={(e) => handleActionChange(e.target.value)}
                             className="text-xs bg-zinc-50 border border-canvas-border rounded px-2 py-1 text-zinc-700 hover:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
                             <option value="all">All Actions</option>
