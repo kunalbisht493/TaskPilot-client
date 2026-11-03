@@ -68,11 +68,11 @@ export default function App() {
       <Header onOpenInfo={() => setInfoModalOpen(true)} />
 
       {/* Main container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto flex flex-col">
+      <main className="flex-1 w-full flex flex-col">
         {/* Auth notification banner */}
         {authBanner && (
           <div
-            className={`px-4 py-2 text-xs flex items-center justify-between border-b ${
+            className={`px-4 sm:px-6 py-2 text-xs flex items-center justify-between border-b ${
               authBanner.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -96,9 +96,9 @@ export default function App() {
         )}
 
         {/* Unauthenticated notice */}
-          {/* Unauthenticated notice -- only shown after auth check completes, prevents layout shift on refresh */}
+        {/* Unauthenticated notice -- only shown after auth check completes, prevents layout shift on refresh */}
         {!authLoading && !isAuthenticated && (
-          <div className="p-3 bg-canvas-subtle border-b border-canvas-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-700">
+          <div className="px-4 sm:px-6 py-2.5 bg-canvas-subtle border-b border-canvas-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-700">
             <span>Session inactive. Sign in with Google to enable task management, calendar scheduling, and execution confirmations.</span>
           </div>
         )}
@@ -114,7 +114,7 @@ export default function App() {
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-[580px] border-b border-canvas-border">
           {/* Left Pane: Execution Trace Timeline (7 cols) */}
           <div className="lg:col-span-7 flex flex-col border-b lg:border-b-0 lg:border-r border-canvas-border">
-            <div className="px-4 py-1.5 border-b border-canvas-border bg-white flex items-center justify-between text-[11px] text-zinc-500">
+            <div className="px-4 sm:px-6 py-1.5 border-b border-canvas-border bg-white flex items-center justify-between text-[11px] text-zinc-500">
               <div className="flex items-center gap-2 sm:gap-3 font-sans text-[11px]">
                 <div className="flex items-center gap-1.5">
                   <span className="text-zinc-500 font-medium">Session:</span>

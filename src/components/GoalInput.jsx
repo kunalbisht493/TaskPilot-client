@@ -20,7 +20,7 @@ export function GoalInput({ onSubmit, isExecuting, disabled }) {
   };
 
   return (
-    <div className="bg-canvas-subtle border-b border-canvas-border p-4">
+    <div className="bg-canvas-subtle border-b border-canvas-border px-4 sm:px-6 py-4">
       <form onSubmit={handleSubmit} className="space-y-2.5">
         <div className="relative">
           <textarea

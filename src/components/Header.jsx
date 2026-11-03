@@ -14,7 +14,7 @@ export function Header({ onOpenInfo }) {
 
   return (
     <header className="border-b border-canvas-border bg-white px-4 sm:px-6 py-2.5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div className="w-full flex items-center justify-between gap-4">
         {/* Brand identity */}
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded bg-zinc-900 text-white flex items-center justify-center">
