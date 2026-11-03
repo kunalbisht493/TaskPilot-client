@@ -44,28 +44,6 @@ export function AuthProvider({ children }) {
     refreshUser();
   }, [fetchHealth, refreshUser]);
 
-  const devLogin = async (customUser = {}) => {
-    setLoading(true);
-    try {
-      const data = await authApi.devLogin(customUser);
-      if (data?.user) {
-        const normalized = {
-          ...data.user,
-          isConnectedToCalendar: Boolean(data.user.hasGoogleCalendar || data.user.isConnectedToCalendar),
-        };
-        setUser(normalized);
-        setError(null);
-        return { ...data, user: normalized };
-      }
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const logout = async () => {
     try {
       await authApi.logout();
@@ -83,7 +61,6 @@ export function AuthProvider({ children }) {
         error,
         refreshUser,
         fetchHealth,
-        devLogin,
         logout,
         isAuthenticated: !!user,
         isConnectedToCalendar: Boolean(user?.isConnectedToCalendar),

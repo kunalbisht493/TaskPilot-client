@@ -81,8 +81,8 @@ export function SystemInfoModal({ isOpen, onClose }) {
           </div>
 
           <div className="p-2.5 rounded bg-canvas-subtle border border-canvas-border flex items-center justify-between text-[11px] font-mono text-zinc-500">
-            <span>Auth: HttpOnly JWT</span>
-            <span>Port: 5174</span>
+            <span>Auth: HttpOnly JWT (OAuth 2.0)</span>
+            <span>Runtime: Production Ready</span>
           </div>
         </div>
       </div>

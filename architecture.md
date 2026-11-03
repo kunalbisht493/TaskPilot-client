@@ -84,11 +84,11 @@ The client adopts a modular, lightweight state architecture combining **React Co
 1. **`AuthContext` (`src/context/AuthContext.jsx`):**
    - Holds `user`, `loading`, `health`, and `error` states.
    - Automatically polls `GET /api/auth/me` on mount.
-   - Provides `devLogin()` and `logout()` methods.
+   - Provides `refreshUser()`, `fetchHealth()`, and `logout()` methods.
    - Computes `isAuthenticated` and `isConnectedToCalendar`.
 
 2. **`SocketContext` (`src/context/SocketContext.jsx`):**
-   - Initializes a singleton `io()` connection targeting `http://localhost:5001`.
+   - Initializes a singleton `io()` connection with environment-aware URL resolution and credentials.
    - Manages connection lifecycle (`connect`, `disconnect`, `connect_error`).
    - Exposes `socket` instance and `isConnected` boolean.
 

@@ -3,7 +3,11 @@ import { io } from 'socket.io-client';
 
 const SocketContext = createContext(null);
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_WS_URL || 'http://localhost:5001';
+const SOCKET_SERVER_URL =
+  import.meta.env.VITE_WS_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? window.location.origin
+    : 'http://localhost:5001');
 
 // Module-level singleton to prevent duplicate socket instances across renders/remounts
 let socketInstance = null;

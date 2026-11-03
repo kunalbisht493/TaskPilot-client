@@ -156,7 +156,7 @@ This document records all significant technical and design decisions made for th
 
 ## ADR-C009: Quick Dev-Login Bypass for Accelerated Evaluation
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-C027
 - **Date:** 2026-09-25
 - **Context:**
   During portfolio reviews and local development, setting up and authenticating real Google OAuth credentials can be cumbersome or blocked by redirect URI restrictions.
@@ -482,6 +482,24 @@ This document records all significant technical and design decisions made for th
 
 - **Why Taken:**
   Transforms the expanded audit trail into a clean, consumer-grade activity ledger while maintaining strict filtering harmony.
+
+---
+
+## ADR-C027: Removal of Development Authentication Bypasses & Production OAuth Hardening
+
+- **Status:** Accepted
+- **Date:** 2026-11-03
+- **Context:**
+  In preparation for production deployment, all developer bypass controls ("Dev Quick Login", mock credentials, static port assumptions) had to be removed. Authentication must strictly route through the official Google OAuth 2.0 flow with standard visual indicators and seamless session initialization across devices.
+
+- **Decision:**
+  1. **Excised Dev Login Controls:** Completely removed `devLogin` methods, API routes, and developer bypass buttons from `App.jsx`, `Header.jsx`, `AuthContext.jsx`, and `authApi.js`.
+  2. **First-Class Google OAuth UI:** Integrated an authentic Google-branded "Sign in with Google" action into both top navigation and unauthenticated prompt banners, redirecting to `/api/auth/google` with automatic return URL handling.
+  3. **Production URL Fallbacks:** Enhanced WebSocket and API client resolution in `SocketContext.jsx` to dynamically target host origins rather than hardcoding localhost development ports.
+
+- **Why Taken:**
+  1. Delivers a secure, consumer-ready interface compliant with zero-trust production standards.
+  2. Guarantees authentic Google OAuth credential exchange and real Google Calendar synchronizations for all users.
 
 ---
 
