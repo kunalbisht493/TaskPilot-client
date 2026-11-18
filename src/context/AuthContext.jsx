@@ -44,11 +44,50 @@ export function AuthProvider({ children }) {
     refreshUser();
   }, [fetchHealth, refreshUser]);
 
+  const demoLogin = async (customUser = {}) => {
+    setLoading(true);
+    try {
+      const data = await authApi.demoLogin(customUser);
+      if (data?.user) {
+        const normalized = {
+          ...data.user,
+          isConnectedToCalendar: Boolean(data.user.hasGoogleCalendar || data.user.isConnectedToCalendar),
+        };
+        setUser(normalized);
+        setError(null);
+        return { ...data, user: normalized };
+      }
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await authApi.logout();
     } finally {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        const keys = [
+          'taskpilot_session_id',
+          'taskpilot_conversation_id',
+          'taskpilot_steps',
+          'taskpilot_final_answer',
+          'taskpilot_active_goal',
+          'taskpilot_pending_confirmation',
+        ];
+        keys.forEach((k) => {
+          try {
+            window.localStorage.removeItem(k);
+          } catch {
+            // ignore
+          }
+        });
+      }
     }
   };
 
@@ -61,6 +100,7 @@ export function AuthProvider({ children }) {
         error,
         refreshUser,
         fetchHealth,
+        demoLogin,
         logout,
         isAuthenticated: !!user,
         isConnectedToCalendar: Boolean(user?.isConnectedToCalendar),

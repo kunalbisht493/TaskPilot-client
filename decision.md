@@ -503,6 +503,46 @@ This document records all significant technical and design decisions made for th
 
 ---
 
+## ADR-C028: 1-Click Demo Evaluation Mode & Minimal Header Integration
+
+- **Status:** Accepted
+- **Date:** 2026-11-18
+- **Context:**
+  Google Cloud OAuth projects with sensitive scopes (`https://www.googleapis.com/auth/calendar`) require formal Google verification. In Testing mode, non-allowlisted evaluators (HR, hiring managers) receive `403: access_denied`; in unverified production, Google displays an alarming "Google hasn't verified this app" warning. Evaluators require a zero-friction evaluation path without sharing credentials or bypassing security warnings.
+
+- **Decision:**
+  1. **Minimal Header Demo Action:** Added a clean text-only `Demo` button in `Header.jsx` placed directly beside the `Architecture` button when unauthenticated, invoking `POST /api/auth/demo-login`.
+  2. **Banner Streamlining:** Kept prompt banners clean and informational, removing redundant buttons to preserve UI focus.
+  3. **Visual Parity:** Logged-in demo sessions display a `Demo` badge and a `Calendar Sandbox` indicator confirming scheduling tools are live.
+
+- **Why Taken:**
+  1. Grants evaluators immediate 1-click access to the full ReAct loop, task planner, and HITL confirmation guardrails in under 5 seconds.
+  2. Maintains a professional, understated aesthetic without distracting badges or visual clutter.
+
+---
+
+## ADR-C029: Complete Multi-Account State Purge & Session Lifecycle Invalidation
+
+- **Status:** Accepted
+- **Date:** 2026-11-18
+- **Context:**
+  When a user logged out or switched from Demo mode to a personal Google account, the UI retained stale ReAct reasoning traces, active tasks, and action audit logs from the previous session. Root cause analysis revealed:
+  1. `AuthContext.logout()` cleared the in-memory user state but did not remove `taskpilot_*` keys from `localStorage`.
+  2. `useAgentSession` retained dialogue history and conversation rooms across auth transitions.
+  3. `TaskPanel` and `AuditLogPanel` did not clear local array states when unauthenticated.
+
+- **Decision:**
+  1. **Strict Storage Purge on Logout:** `AuthContext.logout()` unconditionally removes all `taskpilot_*` keys (`steps`, `final_answer`, `active_goal`, `pending_confirmation`, `session_id`, `conversation_id`) from `localStorage`.
+  2. **Full Session Invalidation (`resetSession({ full: true })`):** Generates brand new session and conversation IDs, clears reasoning steps, active goal, pending confirmations, and socket rooms.
+  3. **Reactive Auth Watching (`App.jsx`):** Monitored `isAuthenticated` and `user.id` to trigger `resetSession({ full: true })` whenever a user logs out or switches accounts.
+  4. **Immediate Panel Emptying:** Configured `TaskPanel` and `AuditLogPanel` to immediately clear data (`tasks: []`, `logs: []`, `stats: null`) on unauthenticated transitions.
+
+- **Why Taken:**
+  1. Prevents cross-account data leakage between evaluator demo sessions and authenticated Google users.
+  2. Ensures the user interface immediately transitions to a pristine empty state upon logout.
+
+---
+
 ## Key Frontend Engineering Highlights & Resume Impact (Ready-to-Use Resume Points)
 
 1. **Real-Time Agent UI & Execution Stream Rendering:**

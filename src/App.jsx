@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { GoalInput } from './components/GoalInput';
 import { ReasoningFeed } from './components/ReasoningFeed';
@@ -8,11 +8,10 @@ import { AuditLogPanel } from './components/AuditLogPanel';
 import { SystemInfoModal } from './components/SystemInfoModal';
 import { useAgentSession } from './hooks/useAgentSession';
 import { useAuth } from './context/AuthContext';
-import { authApi } from './api/authApi';
 import { RotateCcw, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
-  const { isAuthenticated, loading: authLoading, refreshUser } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('tasks');
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [authBanner, setAuthBanner] = useState(null);
@@ -62,6 +61,19 @@ export default function App() {
     resetSession,
   } = useAgentSession();
 
+  // Reset agent session completely on logout or when switching accounts
+  const prevUserIdRef = useRef(user?.id);
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        resetSession({ full: true });
+      } else if (prevUserIdRef.current && prevUserIdRef.current !== user?.id) {
+        resetSession({ full: true });
+      }
+      prevUserIdRef.current = user?.id;
+    }
+  }, [isAuthenticated, user?.id, authLoading]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col text-zinc-900 antialiased">
       {/* Flush top navigation */}
@@ -72,11 +84,10 @@ export default function App() {
         {/* Auth notification banner */}
         {authBanner && (
           <div
-            className={`px-4 sm:px-6 py-2 text-xs flex items-center justify-between border-b ${
-              authBanner.type === 'success'
+            className={`px-4 sm:px-6 py-2 text-xs flex items-center justify-between border-b ${authBanner.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'bg-rose-50 text-rose-800 border-rose-200'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               {authBanner.type === 'success' ? (
@@ -99,7 +110,7 @@ export default function App() {
         {/* Unauthenticated notice -- only shown after auth check completes, prevents layout shift on refresh */}
         {!authLoading && !isAuthenticated && (
           <div className="px-4 sm:px-6 py-2.5 bg-canvas-subtle border-b border-canvas-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-700">
-            <span>Session inactive. Sign in with Google to enable task management, calendar scheduling, and execution confirmations.</span>
+            <span>Session inactive. Sign in with Google or click Demo in the header to enable task management, calendar scheduling, and execution confirmations.</span>
           </div>
         )}
 
@@ -162,21 +173,19 @@ export default function App() {
             <div className="flex border-b border-canvas-border bg-white text-xs font-medium">
               <button
                 onClick={() => setActiveTab('tasks')}
-                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${
-                  activeTab === 'tasks'
+                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${activeTab === 'tasks'
                     ? 'border-zinc-900 text-zinc-900 font-semibold'
                     : 'border-transparent text-zinc-500 hover:text-zinc-700'
-                }`}
+                  }`}
               >
                 Database Tasks
               </button>
               <button
                 onClick={() => setActiveTab('audit')}
-                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${
-                  activeTab === 'audit'
+                className={`flex-1 py-2 px-3 text-center border-b-2 transition-colors ${activeTab === 'audit'
                     ? 'border-zinc-900 text-zinc-900 font-semibold'
                     : 'border-transparent text-zinc-500 hover:text-zinc-700'
-                }`}
+                  }`}
               >
                 Action Audit Log
               </button>

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 
 export function TaskPanel() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { socket } = useSocket();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,21 +17,33 @@ export function TaskPanel() {
   const [isAdding, setIsAdding] = useState(false);
 
   const fetchTasks = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setTasks([]);
+      return;
+    }
     try {
       setLoading(true);
       const res = await taskApi.getTasks();
-      if (res?.tasks) setTasks(res.tasks);
+      if (res?.tasks) {
+        setTasks(res.tasks);
+      } else {
+        setTasks([]);
+      }
     } catch (err) {
       console.error('Failed to fetch tasks:', err.message);
+      setTasks([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, [isAuthenticated]);
+    if (!isAuthenticated) {
+      setTasks([]);
+    } else {
+      fetchTasks();
+    }
+  }, [isAuthenticated, user?.id]);
 
   // Real-time synchronization when agent executes task actions
   useEffect(() => {

@@ -1,15 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { Bot, Calendar, Check, LogOut, HelpCircle, ExternalLink } from 'lucide-react';
 import { authApi } from '../api/authApi';
 
 export function Header({ onOpenInfo }) {
-  const { user, isAuthenticated, isConnectedToCalendar, logout } = useAuth();
+  const { user, isAuthenticated, isConnectedToCalendar, demoLogin, logout } = useAuth();
   const { isConnected: socketConnected } = useSocket();
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   const handleGoogleConnect = () => {
     window.location.href = authApi.getGoogleConnectUrl();
+  };
+
+  const handleDemoLogin = async () => {
+    try {
+      setIsDemoLoading(true);
+      await demoLogin();
+    } catch (err) {
+      alert('Failed to launch Demo: ' + (err.message || 'Server error'));
+    } finally {
+      setIsDemoLoading(false);
+    }
   };
 
   return (
@@ -43,12 +55,23 @@ export function Header({ onOpenInfo }) {
             <span className="hidden sm:inline">Architecture</span>
           </button>
 
+          {!isAuthenticated && (
+            <button
+              onClick={handleDemoLogin}
+              disabled={isDemoLoading}
+              className="px-2.5 py-1 rounded text-xs text-zinc-600 hover:text-zinc-900 bg-white hover:bg-canvas-subtle border border-canvas-border focus-ring disabled:opacity-50"
+              title="Instant demo access"
+            >
+              <span>{isDemoLoading ? 'Loading...' : 'Demo'}</span>
+            </button>
+          )}
+
           {isAuthenticated ? (
             <div className="flex items-center gap-2 pl-2">
               {isConnectedToCalendar ? (
                 <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <Check className="w-3 h-3 text-emerald-600" />
-                  Calendar linked
+                  {user?.isDemoUser ? 'Calendar Sandbox' : 'Calendar linked'}
                 </span>
               ) : (
                 <button
@@ -62,6 +85,11 @@ export function Header({ onOpenInfo }) {
               )}
 
               <div className="flex items-center gap-2 bg-canvas-subtle border border-canvas-border rounded py-0.5 px-2 text-xs text-zinc-800">
+                {user?.isDemoUser && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-semibold uppercase tracking-wider">
+                    Demo
+                  </span>
+                )}
                 <span className="max-w-[120px] truncate font-medium">
                   {user?.name || user?.email || 'Logged in'}
                 </span>

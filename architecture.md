@@ -66,7 +66,7 @@ flowchart TB
 | Component | File Path | Primary Responsibility |
 |---|---|---|
 | **App** | `src/App.jsx` | Root dashboard layout, 2-column responsive grid, modal management, unauthenticated callout banner. |
-| **Header** | `src/components/Header.jsx` | App branding, active LLM model indicator, Socket connection pulse, Google Calendar link badge, Dev Login shortcut, and user session menu. |
+| **Header** | `src/components/Header.jsx` | App branding, gateway connection indicator, Google Calendar / Sandbox status badge, 1-Click Demo button, Architecture modal trigger, and user session menu. |
 | **GoalInput** | `src/components/GoalInput.jsx` | Controlled multi-line goal input, keyboard submission (`Enter`), execution disabled states, and quick-prompt suggestion chips. |
 | **ReasoningFeed** | `src/components/ReasoningFeed.jsx` | Sequential ReAct step visualizer rendering 🧠 **REASON** (thoughts), ⚡ **ACT** (tools + formatted args), and 👁️ **OBSERVE** (outputs), plus final completion cards. |
 | **ConfirmationModal** | `src/components/ConfirmationModal.jsx` | Human-in-the-Loop guardrail modal intercepting write actions, displaying formatted parameter previews with **Approve** and **Reject** handlers. |
@@ -84,8 +84,9 @@ The client adopts a modular, lightweight state architecture combining **React Co
 1. **`AuthContext` (`src/context/AuthContext.jsx`):**
    - Holds `user`, `loading`, `health`, and `error` states.
    - Automatically polls `GET /api/auth/me` on mount.
-   - Provides `refreshUser()`, `fetchHealth()`, and `logout()` methods.
+   - Provides `refreshUser()`, `fetchHealth()`, `demoLogin()`, and `logout()` methods.
    - Computes `isAuthenticated` and `isConnectedToCalendar`.
+   - On `logout()`, strictly purges all session keys (`steps`, `goals`, `IDs`) from `localStorage`.
 
 2. **`SocketContext` (`src/context/SocketContext.jsx`):**
    - Initializes a singleton `io()` connection with environment-aware URL resolution and credentials.
@@ -102,7 +103,7 @@ The client adopts a modular, lightweight state architecture combining **React Co
 - **Actions:**
   - `submitGoal(goal)` → Dispatches `POST /api/agent/task`.
   - `submitConfirmation(approved)` → Dispatches `POST /api/agent/confirm`.
-  - `resetSession()` → Clears state and initializes a clean conversation ID.
+  - `resetSession({ full })` → Clears state, purges `localStorage`, transitions socket rooms, and initializes clean session/conversation IDs.
 
 ---
 

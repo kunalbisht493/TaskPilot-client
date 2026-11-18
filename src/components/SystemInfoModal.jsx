@@ -42,6 +42,13 @@ export function SystemInfoModal({ isOpen, onClose }) {
             </p>
           </div>
 
+          <div className="p-2.5 rounded bg-canvas-subtle border border-canvas-border space-y-1">
+            <span className="font-semibold text-zinc-800 block">Recruiter Evaluation Sandbox</span>
+            <p className="leading-relaxed">
+              Enables evaluators and interviewers to test the full agentic loop (conflict detection, calendar scheduling, MongoDB task CRUD, and WebSocket streaming) with 1 click without requiring Google account credentials or unverified OAuth app warnings.
+            </p>
+          </div>
+
           {/* Automated Data Retention / Lifecycle Management */}
           <div className="p-2.5 rounded bg-canvas-subtle border border-canvas-border space-y-1.5">
             <div className="flex items-center gap-1.5 font-semibold text-zinc-800">

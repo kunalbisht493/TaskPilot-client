@@ -590,7 +590,7 @@ function ActivityDetails({ log, logKey, copiedMeetId, onCopyMeet }) {
 }
 
 export function AuditLogPanel() {
-    const { isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const { socket } = useSocket();
     const [logs, setLogs] = useState([]);
     const [stats, setStats] = useState(null);
@@ -610,7 +610,11 @@ export function AuditLogPanel() {
     const [copiedMeetId, setCopiedMeetId] = useState(null);
 
     const fetchLogsAndStats = async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            setLogs([]);
+            setStats(null);
+            return;
+        }
         try {
             setLoading(true);
             const [logsRes, statsRes] = await Promise.all([
@@ -618,19 +622,32 @@ export function AuditLogPanel() {
                 auditApi.getStats()
             ]);
             if (logsRes?.logs) setLogs(logsRes.logs);
+            else setLogs([]);
             if (statsRes?.stats) setStats(statsRes.stats);
+            else setStats(null);
         } catch (err) {
             console.error('Failed to load audit logs:', err.message);
+            setLogs([]);
+            setStats(null);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchLogsAndStats(); }, [isAuthenticated]);
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setLogs([]);
+            setStats(null);
+        } else {
+            fetchLogsAndStats();
+        }
+    }, [isAuthenticated, user?.id]);
 
     useEffect(() => {
         if (!socket) return;
         const handleNewLog = (newLog) => {
+            if (!isAuthenticated) return;
+            if (newLog?.userId && user?.id && String(newLog.userId) !== String(user.id)) return;
             setLogs((prev) => [newLog, ...prev.slice(0, 49)]);
             setStats((prev) => {
                 if (!prev) return null;

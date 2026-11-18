@@ -29,7 +29,7 @@ While traditional AI applications are opaque conversational chat boxes ("AI that
 - **As a User**, I want to submit complex scheduling or task management goals in natural language so the agent can execute multi-step workflows.
 - **As a User**, I want to watch the agent think, pick tools, and observe results in real time so I have complete confidence in its behavior.
 - **As a User**, I want to review and approve or reject any write action before external calendar events or database tasks are modified.
-- **As a User**, I want to link my Google Calendar with one click or use Dev Quick Login for rapid offline/local testing.
+- **As an Evaluator or User**, I want to evaluate the agent instantly via 1-Click Demo Mode (without unverified OAuth app barriers) or connect my personal Google Calendar.
 - **As a User**, I want to view my live to-do list and an immutable audit trail of past agent invocations with performance metrics.
 
 ---
@@ -43,13 +43,15 @@ While traditional AI applications are opaque conversational chat boxes ("AI that
   - REST client with automatic `credentials: 'include'` for HttpOnly JWT session persistence.
   - Socket.io client connecting to port 5001 with session room management (`join_conversation` / `leave_conversation`).
 - **Interactive Component Suite:**
-  - `Header`: Real-time health badge, active LLM indicator, Google Calendar connect status, dev login shortcut.
+  - `Header`: Gateway connection indicator, Google Calendar / Sandbox status badge, 1-Click Demo button, Architecture specs modal, and user session menu.
   - `GoalInput`: Prompt textarea with keyboard shortcuts (`Enter` to submit) and 4 interactive starter suggestion chips.
   - `ReasoningFeed`: Live stream visualizer for Reason, Act, and Observe steps, active spinner states, and final answer card.
   - `ConfirmationModal`: HITL modal with event/task parameter breakdown and Approve/Reject triggers.
   - `TaskPanel`: MongoDB task manager with status filters (`All`, `Pending`, `Completed`), inline creation, and completion toggles.
-  - `AuditLogPanel`: Live streaming table with aggregated metrics (total calls, confirmed count, success rate) and expandable JSON viewers.
-  - `SystemInfoModal`: Educational modal breaking down the hand-built ReAct loop architecture and tool schemas.
+  - `AuditLogPanel`: Live streaming table with aggregated metrics (total calls, confirmed count, success rate) and expandable details.
+  - `SystemInfoModal`: Educational modal breaking down the hand-built ReAct loop architecture, tool schemas, and Recruiter Sandbox.
+- **Session Lifecycle & Privacy Hygiene:**
+  - Complete memory and `localStorage` cache purge on logout and account switch, ensuring zero cross-user state leakage.
 
 ### Explicitly Out of Scope:
 - Heavy component UI libraries (e.g. Material UI, Ant Design) — avoided in favor of Tailwind CSS for full aesthetic control.

@@ -88,7 +88,7 @@ const safeRemoveStorage = (key) => {
 
 export function useAgentSession() {
   const { socket, updateSocketAuth } = useSocket();
-  const [sessionId] = useState(getOrGenerateSessionId);
+  const [sessionId, setSessionId] = useState(getOrGenerateSessionId);
   const [conversationId, setConversationId] = useState(getOrGenerateConversationId);
   const [steps, setSteps] = useState(() => safeGetStorage(STEPS_KEY, []));
   const [isExecuting, setIsExecuting] = useState(false);
@@ -376,10 +376,17 @@ export function useAgentSession() {
     }
   };
 
-  // Reset conversation: retains persistent Session ID while generating a fresh Conversation ID
-  const resetSession = () => {
+  // Reset conversation: retains persistent Session ID while generating a fresh Conversation ID (or full wipe if options.full is true)
+  const resetSession = (options = {}) => {
+    const isFull = options?.full === true;
+    const newSessionId = isFull ? generateSessionId() : sessionId;
     const newConvId = generateConversationId();
     const oldConvId = conversationId;
+
+    if (isFull) {
+      setSessionId(newSessionId);
+      safeSetStorage(SESSION_ID_KEY, newSessionId);
+    }
 
     // Explicitly transition rooms on the live socket
     if (socket && socket.connected) {
@@ -387,7 +394,7 @@ export function useAgentSession() {
         socket.emit('leave_conversation', oldConvId);
       }
       if (updateSocketAuth) {
-        updateSocketAuth({ conversationId: newConvId, sessionId });
+        updateSocketAuth({ conversationId: newConvId, sessionId: newSessionId });
       }
       socket.emit('join_conversation', newConvId);
     }
